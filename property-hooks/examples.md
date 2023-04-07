@@ -283,7 +283,7 @@ A common pattern for many PHP libraries is to have an interface that defines met
 
 The use of properties on interfaces obviates both issues.
 
-For example, this is a real interface out of a library maintained by one of the RFC authors, [[http://github.com/Crell/AttributeUtils|Crell/AttributeUtils]], and a typical class that implements it:
+For example, this is a real interface out of a [library maintained by one of the RFC authors](http://github.com/Crell/AttributeUtils|Crell/AttributeUtils), and a typical class that implements it:
 
 ```php
 interface ParseProperties
