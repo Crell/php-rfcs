@@ -122,44 +122,6 @@ class Request
 
 This example combines with the previous.  It allows only select HTTP methods through, and forces upcasting the URL to a `URL` object.  (Presumably the `URL` constructor contains logic to validate and reject invalid URL formats.)
 
-## Synchronized changes
-
-At times, two properties must be kept in sync with each other.  Updating them in place (or creating a new object with-er style) is fine, but updating one must update the other.
-
-As an example, consider a Request object (similar to PSR-7), where the `uri` property's `host` field must be kept in sync with the `header` list's `host` field.  Today, and even with asymmetric visibility, that would require a pair of set methods.  With property hooks, that relationship can be built into the properties directly, provided the headers are wrapped into an object.
-
-```php
-class Headers
-{
-    public array $headers = [];
-}
-
-class Request
-{
-    public URI $uri {
-        afterSet($uri) {
-            // This would invoke the "get" action on $this->headers,
-            // not set, so there will be no infinite loop.
-            $this->headers->headers['host'] = $uri->host;
-            }
-        }
-    }
-    
-    public Headers $headers {
-        afterSet($headers) {
-            // This would invoke the "get" action on $this->uri,
-            // not set, so there will be no infinite loop.
-            $this->uri->host = $headers['host'] ?? `;
-            }
-        }
-    }   
-    
-    // Lots of other stuff we're not dealing with right now;
-}
-```
-
-Now both `$request->uri` and `$request->headers` may be written to directly, and they will always remain in sync.
-
 ## ORM change tracking
 
 Note that this example is glossing over internal details of the ORM's loading process, as those often involve wonky reflection anyway.  That's not what is being discussed here.
