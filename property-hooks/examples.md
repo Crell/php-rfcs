@@ -126,29 +126,30 @@ This example combines with the previous.  It allows only select HTTP methods thr
 
 At times, two properties must be kept in sync with each other.  Updating them in place (or creating a new object with-er style) is fine, but updating one must update the other.
 
-As an example, consider a Request object (similar to PSR-7), where the `uri` property's `host` field must be kept in sync with the `header` list's `host` field.  Today, and even with asymmetric visibility, that would require a pair of set methods.  With property hooks, that relationship can be built into the properties directly.
+As an example, consider a Request object (similar to PSR-7), where the `uri` property's `host` field must be kept in sync with the `header` list's `host` field.  Today, and even with asymmetric visibility, that would require a pair of set methods.  With property hooks, that relationship can be built into the properties directly, provided the headers are wrapped into an object.
 
 ```php
+class Headers
+{
+    public array $headers = [];
+}
+
 class Request
 {
-    private bool $updating = false;
-
     public URI $uri {
         afterSet($uri) {
-            if (!$this->updating) {
-                $this->updating = true;
-                $this->headers['host'] = $uri->host;
-                $this->updating = false;
+            // This would invoke the "get" action on $this->headers,
+            // not set, so there will be no infinite loop.
+            $this->headers->headers['host'] = $uri->host;
             }
         }
     }
     
-    public array $headers = [] {
+    public Headers $headers {
         afterSet($headers) {
-            if (!$this->updating) {
-                $this->updating = true;
-                $this->uri->host = $headers['host'] ?? `;
-                $this->updating = false;
+            // This would invoke the "get" action on $this->uri,
+            // not set, so there will be no infinite loop.
+            $this->uri->host = $headers['host'] ?? `;
             }
         }
     }   
@@ -157,7 +158,7 @@ class Request
 }
 ```
 
-Because the relationship is bidirectional, we need an additional semaphore to avoid an infinite loop.  That's easily implemented, however.  Now both `$request->uri` and `$request->headers` may be written to directly, and they will always remain in sync.
+Now both `$request->uri` and `$request->headers` may be written to directly, and they will always remain in sync.
 
 ## ORM change tracking
 
