@@ -73,8 +73,7 @@ A `beforeSet` method takes the same variable type as the property is declared fo
 ```php
 class ListOfStuff
 {
-    public iterable $items 
-    {
+    public iterable $items {
         beforeSet => is_array($value) ? new ArrayObject($value) : $value;
     }
 }
@@ -106,7 +105,7 @@ class Request
 {
     public function __construct(
         public string $method = 'GET' { beforeSet => $this->normalizeMethod($value); },
-        public string|Url $url { beforeSet => $url instanceof Url ? $url :  },
+        public string|Url $url { beforeSet => $url instanceof Url ? $url : new Url($url); },
         public array $body,
     ) {}
 
@@ -256,8 +255,8 @@ class ProductRepo
     {
         // Here we're checking a boolean property that is computed on the fly.
         if ($p->hasChanges) {
-        // We can get the list here, but not change it.
-        $fields = $p->modifications();
+            // We can get the list here, but not change it.
+            $fields = $p->modifications();
             // Do something with an SQL builder to write just the changed properties,
             // or build an EventSource event with just the changes, or whatever.
         }
@@ -298,7 +297,7 @@ interface ParseProperties
 #[\Attribute(\Attribute::TARGET_CLASS)]
 class ClassWithProperties implements ParseProperties
 {
-public array $properties = [];
+    public array $properties = [];
 
     public function __construct(
         public readonly int $a = 0,
