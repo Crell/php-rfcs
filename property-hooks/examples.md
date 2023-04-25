@@ -88,8 +88,8 @@ use Symfony\Component\String\UnicodeString;
 
 class Person
 {
-    public string|UnicodeString $name {
-        beforeSet => $value instanceof UnicodeString ? $value : new UnicodeString($value);
+    public UnicodeString $name {
+        beforeSet(string|UnicodeString $value) => $value instanceof UnicodeString ? $value : new UnicodeString($value);
     }
 }
 ```
