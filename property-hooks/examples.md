@@ -1,6 +1,6 @@
 # Usage examples
 
-This section includes a collection of examples the authors feel are representative of how hooks can and will be used.  It is non-normative, but gives a sense of how hooks can be used to improve a code base.
+This section includes a collection of examples the authors feel are representative of how property hooks can and will be used.  It is non-normative, but gives a sense of how hooks can be used to improve a code base.
 
 ## Derived properties
 
@@ -30,17 +30,61 @@ class User
 }
 ```
 
-This does introduce a question of when to invalidate the cache.  If `$first` changes, `$full` will be out of date.  This is only a concern in some classes, but if it is then it may be addressed with the `afterSet` hook:
+Note that this approach does raise a question of when to invalidate the cache.  In some cases it will not be necessary at all.  If it is, the ideal solution would be an `afterSet` hook, as described in the RFC "Future Scope" section (especially if CPP were allowed for non-virtual properties).
 
 ```php
 class User
 {
     private string $full;
 
+    private string $first { afterSet => unset($this->full); };
+    private string $last { afterSet => unset($this->full); };
+
     public function __construct(
-        public string $first { afterSet => unset($this->full); }, 
-        public string $last { afterSet => unset($this->full); },
-    ) {}
+        string $first,
+        string $last,
+    ) {
+        $this->first = $first;
+        $this->last = $last;
+    }
+    
+    public string $fullName => $this->full ??= $this->first . " " . $this->last;
+}
+```
+
+With just the existing `get`/`set` hooks, the same design can be achieved with a little more work:
+
+```php
+class User
+{
+    private string $full;
+
+    private string $_first;
+    private string $_last;
+
+    private string $first {
+        get => $this->_first;
+        set {
+            $this->_first = $value;
+            unset($this->full);
+        }
+    };
+
+    private string $last {
+        get => $this->_first;
+        set {
+            $this->_first = $value;
+            unset($this->full);
+        }
+    };
+
+    public function __construct(
+        string $first,
+        string $last,
+    ) {
+        $this->first = $first;
+        $this->last = $last;
+    }
     
     public string $fullName => $this->full ??= $this->first . " " . $this->last;
 }
@@ -55,189 +99,39 @@ class User
 {
     private array $cache = [];
 
-    public function __construct(
-        public string $first { afterSet => unset($this->cache['fullName']); }, 
-        public string $last { afterSet => unset($this->cache['fullName']); },
-    ) {}
-    
+    // ...
+
     public string $fullName => $this->cache[__PROPERTY__] ??= $this->first . " " . $this->last;
 }
 ```
 
-All of these options are entirely transparent to the caller, making them easy to add after-the-fact.
+All of these options are entirely transparent to the caller, making them straightforward to add after-the-fact.
 
 ## Type normalization
 
-A `beforeSet` method takes the same variable type as the property is declared for.  However, there is no requirement that it cannot narrow the type.  For example:
-
-```php
-class ListOfStuff
-{
-    public iterable $items {
-        beforeSet => is_array($value) ? new ArrayObject($value) : $value;
-    }
-}
-```
-
-This example will accept either an array or `Traversable`, but will ensure that the value that gets written is always a `Traversable` object.  That may be helpful for later internal logic.
-
-Another example would be auto-boxing a value:
+As noted in the RFC, the `set` hook may accept a wider set of values than the type of the property.  That allows it to "normalize" the type to a common type for reading, while allowing a broader type for writing.  As shown in the RFC:
 
 ```php
 use Symfony\Component\String\UnicodeString;
 
 class Person
 {
+    private UnicodeString $unicodeName;
     public UnicodeString $name {
-        beforeSet(string|UnicodeString $value) => $value instanceof UnicodeString ? $value : new UnicodeString($value);
+        get {
+            return $this->unicodeName;
+        }
+        set(string|UnicodeString $value) {
+            if (is_string($value)) {
+                $value = new UnicodeString($value);
+            }
+            $this->$unicodeName = $value;
+        }
     }
 }
 ```
 
 This example ensures that the `$name` property is always a `UnicodeString` instance, but allows users to write PHP strings to it.  Those will get automatically up-converted to `UnicodeStrings`, which then ensures future code only has one type to have to worry about.
-
-## Validation
-
-As mentioned, one of the main uses of `beforeSet` is validation.
-
-```php
-class Request
-{
-    public function __construct(
-        public string $method = 'GET' { beforeSet => $this->normalizeMethod($value); },
-        public string|Url $url { beforeSet => $url instanceof Url ? $url : new Url($url); },
-        public array $body,
-    ) {}
-
-    private function normalizeMethod(string $method): string
-    {
-        $method = strtoupper($method);
-        if (in_array($method, ['GET', 'POST', 'PUT', 'DELETE', 'HEAD']) {
-            return $method;
-        }
-        throw new \InvalidArgumentException("$method is not a supported HTTP operation.");
-    }
-}
-```
-
-This example combines with the previous.  It allows only select HTTP methods through, and forces upcasting the URL to a `URL` object.  (Presumably the `URL` constructor contains logic to validate and reject invalid URL formats.)
-
-## ORM change tracking
-
-Note that this example is glossing over internal details of the ORM's loading process, as those often involve wonky reflection anyway.  That's not what is being discussed here.
-
-Consider a domain object defined like this:
-
-```php
-class Product
-{
-    public readonly string $sku;
-
-    public string $name;
-    public Color $color;
-    public float $price;
-}
-```
-
-That is trivial to define, and to read.  However, it leaves open the potential to use hooks rather than needing to write this far longer version "just in case":
-
-```php
-class Product
-{
-    public readonly string $sku;
-
-    private string $name;
-    private Color $color;
-    private float $price;
-    
-    // None of this is necessary.
-    
-    public function getName(): string
-    {
-        return $this->name;
-    }
-    
-    public function setName(string $name): void
-    {
-        $this->name = $name;
-    }
-
-    public function getColor(): Color
-    {
-        return $this->color;
-    }
-    
-    public function setColor(Color $color): void
-    {
-        $this->color = $color;
-    }
-    
-    public function getPrice(): float
-    {
-        return $this->float;
-    }
-    
-    public function setPrice(float $price): void
-    {
-        $this->price = $price;
-    }
-}
-```
-
-That means change tracking can be added to the object using hooks like this, without any change in the public-facing API:
-
-```php
-class Product
-{
-    private array $modified = [];
-
-    public bool $hasChanges => !count($this->modified);
-    
-    public readonly string $sku;
-    
-    public string $name {
-        afterSet => $this->modified[__PROPERTY__] = $value;
-    }
-    public Color $color {
-        afterSet => $this->modified[__PROPERTY__] = $value;
-    }
-    public float $price {
-        afterSet => $this->modified[__PROPERTY__] = $value;
-    }
-    
-    public function modifications(): array
-    {
-        return $this->modified;
-    {
-}
-
-
-class ProductRepo
-{
-    public function save(Product $p)
-    {
-        // Here we're checking a boolean property that is computed on the fly.
-        if ($p->hasChanges) {
-            // We can get the list here, but not change it.
-            $fields = $p->modifications();
-            // Do something with an SQL builder to write just the changed properties,
-            // or build an EventSource event with just the changes, or whatever.
-        }
-    }
-}
-
-$repo = new ProductRepo();
-
-$p = $repo->load($sku);
-
-// This is type checked.
-$p->price = 99.99;
-
-// This is also type checked.
-$p->color = new Color('#ff3378');
-
-$repo->save($p);
-```
 
 ## Definitional interfaces
 
