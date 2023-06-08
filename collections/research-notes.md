@@ -597,4 +597,147 @@ I really, really don't like Go's collections...
 
 ### Kotlin
 
+Kotlin has two versions of each of the three standard collection types: A mutable one and a read-only one.  They are all typed.  The immutable ones are covariant, but not the mutable ones.  So `List<Square>` can go into `List<Rectangle>` but only if it's an immutable collection.
+
+Specifically, the mutable versions all inherit from the immutable version, and from a `MutableCollection` type.  (I'm not clear on the details.)  There's also an immutable `Collection` type everything inherits from.  You can type parameters with `Collection<String>` and `MutableCollection<String>`.
+
+Apparently, these types are all interfaces, and there are multiple possible implementations of each available.
+
+Kotlin has the idea of "structural equality."  This is basically `==` as PHP understands it, and behaves by default much the same, I think.  However, you can override the `equals()` method on an object to change how the comparison works.
+
+There is *also* a `Comparable` interface with a `compareTo()` method for user-defined types.  I think this is used only internally, whereas `equals()` is an operator overload.  Why they're not unified, I don't know.  There's also "natural" order, which is the usual numeric and lexical ordering.
+
+All three types have "builder" operators, which let you create a mutable collection, populate it within a block, and then convert the result to an immutable version.  Eg:
+
+```Kotlin
+val map = buildMap { // this is MutableMap<String, Int>, types of key and value are inferred from the `put()` calls below
+    put("a", 1)
+    put("b", 0)
+    put("c", 4)
+}
+```
+
+Different collection types may be shallow cloned mutably or immutably, including to each other.  So for instance:
+
+```Kotlin
+aSet.toList()
+aSet.toMutableList()
+aList.toSet()
+aList.toMutableSet()
+```
+
+All collections are Iterators, which means to loop over them with `while` you must call `c.iterator()`, which returns a forward-only cursor object.  A `for` loop does it automatically (basically the same as PHP).  There's also a `forEach` method that is kinda like `array_walk()`.  A bidirectional cursor can be gotten using `c.listIterator()`.
+
+
+
+Kotlin also has `Sequence`s, which are basically generators.
+
+There are a number of common operations available to all collection types (I'm modifying the syntax a bit here to avoid having to explain Kotlin weirdness):
+
+* `c.map(fn)` - Standard map.  `fn` is passed just the value.
+* `c.mapIndexed(fn)` - `fn` is passed `(idx, val)` as separate arguments.  Not clear what this means for a set.
+* `c.mapNotNull(fn)` / `c.mapIndexedNotNull(fn)` - Same as above, but auto-filters null results.
+* `m.mapKeys(fn)` `m.mapValues(fn)` - For Maps specifically, allows transforming just the keys or just the values. `fn` gets both passed.
+* `c.zip(col2)` / `c zip col2` - The usual zip operation, returns an immutable List of Pair objects. `zip()` also takes a transformation callback.  I'm not clear how the result is different from `mapIndexed()`, though.
+* `c.associateWith(c2)` - produces a Map; basically `array_combine()`.  But also allows a callback to produce the map values off of the keys in `c`.
+* `c.associateBy(keyFn, valueFn)` - `valueFn` is optional.  Passes each value to the callbacks, producing a Map.  I actually have use for this.
+* `c.associate(fn)` - `fn` returns a Pair, which are the k/v of the resulting Map.
+* `c.flatten()` - Flattens nested collections into a List.
+* `c.flatMap(fn)` - Same as `map()` followed by a `flatten`().
+* `c.joinToString()` - Basically `implode()`, but has args for separator, prefix, and postfix. Also has a limit, and a truncation marker.
+* `c.joinTo(str)` - Same as `joinToString()`, but sticks `str` at the beginning of the string.
+* `c.filter(fn)` - The obvious. Returns List for List and Set.  Returns Map for Map. On Map, is passed both key and value.  I think.
+* `c.filterIndexed(fn)` - Same, but `fn` gets both key and value.
+* `c.filterNot(fn)` - Keeps elements if they return false instead of true.
+* `c.filterIsInstance<Type>` - Keeps elements if they are of `Type`.
+* `c.filterNotNull()` - Returns non-null values only.
+* `c.partition(fn)` - Returns 2 Collections, those that match `fn` and those that do not.
+* `c.any(fn)` - True if `fn` is true for any element.  With no `fn`, true if non-empty list.
+* `c.all(fn)` - True if `fn` is true for all elements.  With no `fn`, true if empty list.
+* `c.none(fn)` - True if `fn` is true for no elements.
+* `c + item` - Append; returns read-only version.
+* `c + c2` - Concat; returns read-only version.
+* `c - item` - Removes one item, returns read-only version.
+* `c - c2` - Removes all items in `c2`, returns read-only version.
+* `c += item` / `c += c2` / `c -= item` / `c -= c2` - The obvious, with some caveats around mutable vs immutable versions.
+* `c.groupBy(fn)` - Returns a Map, keyed by the result of `fn`.
+* `c.groupingBy(fn)` - I don't really understand this, but it's for chaining, I think?
+* `c.slice(1..3)` / `c.slice(0..4 step 2)` - Not sure how this works on non-lists?
+* `c.slice(setOf(1, 5, 2))` - Returns the first, then 5th, then 2nd element. Again, not sure how this works on non-list.
+* `c.take(2)` / `c.takeLast(2)` - Return the first two / last two elements. Non-destructive.
+* `c.drop(2)` / `c.dropLast(2)` - Return everything except the first two / last two elements. Non-destructive.
+* `c.takeWhile(fn)`, `c.takeLastWhile(fn)`, `c.dropWhile(fb)`, `c.dropLastWhile(fn)` - Does those things while `fn` is true.
+* `c.chunked(3)` - Break into chunks of size 3.  Can also pass a predicate/fn to map each chunk.
+* `c.windowed(3)` - Returns a List of each ordered 3-element subset of the list.  Unclear what it does on non-list.
+* `c.elementAt(idx)` - Value at index.  On Set, what the index is depends on the implementation but there is always one. Exception if not defined.
+* `c.elementAtOrNull(idx)` - Same, but return `null` if not found.
+* `c.elementAtOrElse(idx, fn)` - Same, but invoke `fn` if not found and use that. 
+* `c.first()` / `c.last()` - First/last elements.
+* `c.first(fn)` / `c.last(fn)` - First/last elements where `fn` is true. Exception if none match.
+* `c.firstOrNull(fn)` / `c.lastOrNull()` - Same things, but with `null` defaults.
+* `c.find(fn)` / `c.findLast(fn)` - Aliases of previous.
+* `c.firstNotNullOf()` /  `c.firstNotNullOfOrNull()` - Combination of map and first, but short-circuits (I presume).
+* `c.random()` / `c.randomOrNull()` - Optionally pass a randomness source. First one throws on empty list.
+* `c.contains(val)` `val in c` - true if the value exists, false otherwise.
+* `c.containsAll(list2)` - true if all elements of the list are present.
+* `c.isEmpty()` / `c.isNotEmpty()` - Obvious.
+* `c.sorted()` / `c.sortedDescending()` - Returns new collection
+* `c.sortedWith(fn)` - Sort with custom comparator.
+* `c.sortedBy(fn)` / `c.sortedByDescending(fn)` - I don't understand how this is different than `sortedWith()`.
+* `c.reversed()` - Obvious.
+* `c.asReversed()` - Kind of a reference version of the previous.  Faster if the list is not going to change.
+* `c.shuffle()` - Randomize order in place.
+* `c.shuffled()` - Returns new in random order.
+
+#### List
+
+Lists are created with the `listOf("a", "b", "c")` keyword.  If no values are provided, you can provide the type generically. `listOf<String>()`.  There's also `mutableListOf`.
+
+Lists may also be created with `List(3, fn)`, where the fn callback initializes all values, using `it` as a magic variable name for their index.
+
+Operations include:
+
+* `size` - Property
+* `lastIndex` - Property. Equal to `size - 1`.
+* `l.get(2)` - Get element 2 (0-based)
+* `l[2]` - Same as previous.
+* `l.indexOf(val)` - Returns the key where `val` is found.
+* `l1 == l2` - True if the lists are the same size and each index is structurally equal (see above).
+
+On mutable lists only, there's also:
+
+* `add(val)` - Add to the end of the list.
+* `removeAt(idx)` - Remove the value at a key.
+* `l[4] = 5` - Write value at index.
+
+
+#### Set
+
+Sets are created with the `setOf("A", "B", "C")` keyword, or `mutableSetOf`.  The same empty-generic caveat applies.
+
+Two sets are equal if they are the same size and there is a structurally equal element in each list.  Sets have no order, although some implementations do or don't.  I think you can use any value in a set, as long as it can be structurally compared.
+
+* `toSet()` - Shallow copy to immutable set.
+* 
+
+#### Map
+
+Map doesn't actually inherit from `Collection`, because it is generic over two types.
+
+Maps are created with the `mapOf("key1" to 1, "key2" to 2, "key3" to 3, "key4" to 1)` syntax, or `mutableMapOf`.  The same empty-generic caveat applies.
+
+Maps are unordered, and equal if there are structurally equal values at all keys.
+
+Operations include:
+
+
+On mutable maps only, there's also:
+
+* `put(key, value)` - What it says on the tin.
+* 
+
+
+### Javascript
+
+Stuff about `with()` and `sorted()`.
 
