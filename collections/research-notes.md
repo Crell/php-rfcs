@@ -546,9 +546,54 @@ Most of those methods seem to come from a zillion different interfaces that are 
 
 Swift also has a Collections add-on library in its stdlib.  (Or maybe in the process of getting into the stdlib? Unclear.)  It includes a Deque, OrderedSet, OrderedDictionary (works kinda like PHP arrays)
 
+### Go
+
+#### Arrays and Slices
+
+Go has two native list types, because of its memory design.  Arrays are a typed sequence of values, with a fixed defined size.  `[2]int` and `[3]int` are two different types.  Of note, Go types have "zero values", and an array initializes all values to the appropriate zero type.
+
+Arrays may be indexed by a 0-based index, but there's no support for negative indexes to count from the end.
+
+Operations include:
+
+* `len(a)` - Number of elements.
+* `a[3:6]` - Create a "slice" out of `a`, from index 3 (inclusive) through 6 (exclusive). Omitting the first number means "from the beginning."  Omitting the last number means "to the end, inclusive."
+
+Slices are of variable size, and are a sort of window onto arrays.  They have a resizeable array internally.  
+
+* `append(a, val)` - Add `val` to the end of `a`.  `val` is variadic.
+* `cap(a)` - The current capacity of `a`, which is not the same as its size.
+
+Slices do not have a built-in deletion operation.  Instead, you re-slice them to a new slice, like so: `slice = append(slice[:i], slice[i+1:]...)`
+
+I haven't found much else in the way of built-in operations.  Typical Go.
+
+#### Maps
+
+Maps are native in Go's syntax.  They are very strongly typed.  The value may be any type.  The key may be any type that is "Comparable".  From a blog post on the go.dev site: "in short, comparable types are boolean, numeric, string, pointer, channel, and interface types, and structs or arrays that contain only those types. Notably absent from the list are slices, maps, and functions; these types cannot be compared using ==, and may not be used as map keys."
+
+Go maps are technically reference types, so always start as `nil`.  They require separate initialization using `make()`.  Maps are explicitly unordered and the order of returns is undefined.
+
+Of note, Go types have "zero values", and a missing key evaluates to the zero value of the map's value type.  
+
+Operations include
+
+* `len(m)` - Number of elements
+* `m["foo"] = "bar"` - Basic assignment.
+* `delete(m, key)` - Remove a key from the map. No error on missing key.
+* `_, ok := m["route"]` - Uses Go's funky multi-return to check existence. This is the `array_key_exists()` equivalent.
+
+As is typical for Go, the built-in API is minimal and anything even slightly interesting is left to user-space to figure out.
+
+#### Set
+
+Go lacks a native Set type.  Instead, there are known, documented ways to use a Map as a set, since the key can be so flexible.  
+
+I really, really don't like Go's collections...
+
 ### Rust
 
-### Go
+
 
 ### Kotlin
 
