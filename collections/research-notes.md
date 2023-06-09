@@ -632,7 +632,7 @@ All collections are Iterators, which means to loop over them with `while` you mu
 
 Kotlin also has `Sequence`s, which are basically generators.
 
-There are a number of common operations available to all collection types (I'm modifying the syntax a bit here to avoid having to explain Kotlin weirdness):
+There are a vast of common operations available to all collection types (I'm modifying the syntax a bit here to avoid having to explain Kotlin weirdness).  Most of these are defined as "extension functions" rather than methods, but that's not a distinction that exists in PHP:
 
 * `c.map(fn)` - Standard map.  `fn` is passed just the value.
 * `c.mapIndexed(fn)` - `fn` is passed `(idx, val)` as separate arguments.  Not clear what this means for a set.
@@ -655,11 +655,6 @@ There are a number of common operations available to all collection types (I'm m
 * `c.any(fn)` - True if `fn` is true for any element.  With no `fn`, true if non-empty list.
 * `c.all(fn)` - True if `fn` is true for all elements.  With no `fn`, true if empty list.
 * `c.none(fn)` - True if `fn` is true for no elements.
-* `c + item` - Append; returns read-only version.
-* `c + c2` - Concat; returns read-only version.
-* `c - item` - Removes one item, returns read-only version.
-* `c - c2` - Removes all items in `c2`, returns read-only version.
-* `c += item` / `c += c2` / `c -= item` / `c -= c2` - The obvious, with some caveats around mutable vs immutable versions.
 * `c.groupBy(fn)` - Returns a Map, keyed by the result of `fn`.
 * `c.groupingBy(fn)` - I don't really understand this, but it's for chaining, I think?
 * `c.slice(1..3)` / `c.slice(0..4 step 2)` - Not sure how this works on non-lists?
@@ -688,6 +683,31 @@ There are a number of common operations available to all collection types (I'm m
 * `c.asReversed()` - Kind of a reference version of the previous.  Faster if the list is not going to change.
 * `c.shuffle()` - Randomize order in place.
 * `c.shuffled()` - Returns new in random order.
+* `c.minOrNull()` / `c.maxOrNull()` - Obvious
+* `c.average()` - Obvious. Unclear what it does on non-numeric lists.
+* `c.sum()` - Obvious.
+* `c.count()` - Obvious.
+* `c.maxByOrNull(fn)` / `c.minByOrNull(fn)` - Basically map on `fn`, then `max()`, but returns the original value.
+* `c.fold(init, fn)` - The usual, fold-left.
+* `c.reduce(fn)` - Uses the first value as the init.
+* `c.foldRight(init, fn)` / `c.reduceRight(init, fn)` - Same, but starts at the end of the list and goes backwards.
+* `orNull()` versions of all fold/reduce methods - Returns null on empty lists instead of an exception.
+* `foldIndexed(init, fn)` and all the others - `fn` gets the index, too.
+
+On mutable collections only:
+
+* `c.add(item)` - Append to the end.
+* `c.addAll(c2 or array)` - Concatenates values from an iterable, sequence, or array.
+* `c.addAll(idx, c2 or array)` - Splices values into the list, starting at `idx`.
+* `c.remove(val)` - Remove `val`.
+* `c.removeAll(c2)` - Remove everything in `c2` from `c`.  Can also take a `fn` filter.
+* `c.retainAll(c2)` - Remove everything except what's in `c2`.  Can also take a `fn` filter.
+* `c + item` - Append; returns read-only version.
+* `c + c2` - Concat; returns read-only version.
+* `c - item` - Removes one item, returns read-only version.
+* `c - c2` - Removes all items in `c2`, returns read-only version.
+* `c += item` / `c += c2` / `c -= item` / `c -= c2` - The obvious, with some caveats around mutable vs immutable versions.
+* `c.clear()` - Empty the collection
 
 #### List
 
@@ -695,20 +715,27 @@ Lists are created with the `listOf("a", "b", "c")` keyword.  If no values are pr
 
 Lists may also be created with `List(3, fn)`, where the fn callback initializes all values, using `it` as a magic variable name for their index.
 
-Operations include:
+List-specific operations include (in addition to the huge list above):
 
 * `size` - Property
 * `lastIndex` - Property. Equal to `size - 1`.
 * `l.get(2)` - Get element 2 (0-based)
+* `l.getOrElse(idx, fn)` / `l.getOrNull(idx)` - The usual.
 * `l[2]` - Same as previous.
 * `l.indexOf(val)` - Returns the key where `val` is found.
 * `l1 == l2` - True if the lists are the same size and each index is structurally equal (see above).
-
-On mutable lists only, there's also:
-
-* `add(val)` - Add to the end of the list.
+* `l.subList(start, end)` - Return a new fragment of the list.
+* `l.indexOf(val)` / `c.lastIndexOf(val)` - Obvious.
+* `l.indexOfFirst(comparison)` / `c.indexOfLast(comparison)` - Obvious.
+* `l.binarySearch(val)` - Faster way to search for the idx of a value, assuming the list has been sorted.
+* `l.binarySearch(val, fn)` - Custom comparison function if the values are not comparable. Value is "found" if the comparison == 0.
+* `l.add(idx, val)` - Sets the value at the given idx to val.
+* `l[1] = val` = Also sets the value at a given idx.
+* `l.fill(val)` - Replace all positions with `val`.
 * `removeAt(idx)` - Remove the value at a key.
-* `l[4] = 5` - Write value at index.
+* `l.union(l2)` - Union, returns new set, with dupes removed.
+* `l.intersect(l2)` - Intersect, returns new set, with dupes removed.
+* `l.subtract(l2)` - Returns set with values in s that are not in s2.
 
 
 #### Set
@@ -717,8 +744,10 @@ Sets are created with the `setOf("A", "B", "C")` keyword, or `mutableSetOf`.  Th
 
 Two sets are equal if they are the same size and there is a structurally equal element in each list.  Sets have no order, although some implementations do or don't.  I think you can use any value in a set, as long as it can be structurally compared.
 
-* `toSet()` - Shallow copy to immutable set.
-* 
+* `s.toSet()` - Shallow copy to immutable set.
+* `s.union(s2)` - Union, returns new set.
+* `s.intersect(s2)` - Intersect, returns new set.
+* `s.subtract(s2)` - Returns set with values in s that are not in s2.
 
 #### Map
 
@@ -730,11 +759,27 @@ Maps are unordered, and equal if there are structurally equal values at all keys
 
 Operations include:
 
+* `m.get(key)` / `m[key]` - Retrieve value by key.  Exception if not found.
+* `m.getOrElse(key, fn)` / `m.getOrDefault(key, val)` - Obvious by now.
+* `m.keys` - Returns Set of all keys.
+* `m.values` - Returns collection (list?) of values.
+* `m.filter(fn)` - Returns filtered map. `fn` gets both key and value.
+* `m.filterKeys(fn)` - Returns filtered map. `fn` only gets the key.
+* `m.filterValues(fn)` - returns filtered map. `fn` only gets the value.
+* `m + m2` - Returns combined map. In case of matching keys, right side wins.
+* `m + Pair` - Adds a single key/value to the map, and returns.
+* `m - key` - Returns a new map, without the `key` entry.
+* `m - list` - Returns a new map, without any of the keys in `list`.
 
 On mutable maps only, there's also:
 
-* `put(key, value)` - What it says on the tin.
-* 
+* `m.put(key, value)` - What it says on the tin.
+* `m.putAll(m2)` - Updates multiple keys in place.
+* `m += m2` - Same as `putAll(m2)`.
+* `m[3] = 5` - Same as `put(3, 5)`.
+* `m.remove(key)` - Removes in place.
+* `m.values.remove(val)` - Removes a value. the `values` property apparently still links back to the map?
+* `m -= key` - Same as `remove(key)`
 
 
 ### Javascript
