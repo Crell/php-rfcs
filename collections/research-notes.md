@@ -591,9 +591,6 @@ Go lacks a native Set type.  Instead, there are known, documented ways to use a 
 
 I really, really don't like Go's collections...
 
-### Rust
-
-
 
 ### Kotlin
 
@@ -785,4 +782,40 @@ On mutable maps only, there's also:
 ### Javascript
 
 Stuff about `with()` and `sorted()`.
+
+#### Array
+
+Javascript Arrays are objects.  Trying to write a string key will set an object property.  Integer keys are still properties, but used as an array.  Keys are not forced to be sequential.  Some operations skip empty slots, others treat them as `undefined`, based on when the method was added.  Basically, they're just as stupidly designed as PHP arrays.
+
+Operations include:
+
+* `a.length` - Property.  Can also be written to in order to expand or contract the array.
+* `a.concat()`
+
+#### Map
+
+Javascript Objects are basically maps, and historically have been used that way much like PHP arrays.  More recently, Javascript has added a Map object, which is more purpose-built and has less baggage.  It also supports arbitrary types as keys, including objects and functions.  Maps are ordered by insertion.
+
+Keys in Maps are compared using "Same value zero equality", which, if I read the docs right, is basically `===`.
+
+`[]`-based syntax does not work on Maps, because it gets confused with object property manipulation.  Because Javascript.
+
+There is a haphazard set of APIs to convert between Maps and arrays of 2-value arrays.
+
+Operations include:
+
+`m.size` - Property
+`m.clear()` - Empty the map
+`m.forEach(fn)` - Call `fn` with each key/value pair.
+`m.get(key)` - Return value or undefined.
+`m.set(key, val)` - Sets the value.
+`m.has(key)` - True if found, false if not.
+`m.keys()` - Returns all keys as an iterator object.
+`m.values()` - Returns all values as an iterator object.
+`new Map([...m1, ...m2])` - Creates an array of k/v from both maps, then makes a new map out of that.
+
+
+
+### Rust
+
 
