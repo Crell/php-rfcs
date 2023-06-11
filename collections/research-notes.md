@@ -781,7 +781,7 @@ On mutable maps only, there's also:
 
 ### Javascript
 
-Stuff about `with()` and `sorted()`.
+Javascript has separate Array, Set, and Map objects.  Nearly all the functionality is on Array, though, even in cases where it would be sensible to also have it on the others (like map or filter).
 
 #### Array
 
@@ -790,7 +790,64 @@ Javascript Arrays are objects.  Trying to write a string key will set an object 
 Operations include:
 
 * `a.length` - Property.  Can also be written to in order to expand or contract the array.
-* `a.concat()`
+* `a.concat(a2)` - Returns a new array with values from both.
+* `a.copyWithin(target, start, end)` - Copy part of an array over another part of the array. Modifies in place and returns self.
+* `a.entries()` - Returns iterator of k/v pairs.
+* `a.every(fn)` - True if `fn` is true for all elements, false otherwise.
+* `a.fill(value, start, end)` - Fill an array (or subset of an array) with a value.  Modifies in place and returns self.
+* `a.filter(fn)` - Shallow copy to new array. `fn` gets just the value.
+* `a.find(fn)` / `a.findLast(fn)` - Returns first element where `fn` is true, undefined on not-found.
+* `a.findIndex(fn)` / `a.findLastIndex(fn)` - Returns index of first element where `fn` is true, -1 on not-found.
+* `a.flat(depth)` - Recursively flattens an array, up to depth.
+* `a.flatMap(fn)` - Equivalent to `a.map(...args).flat()`.
+* `a.forEach(fn)` - Calls `fn` on each element, no return.
+* `Array.from(arrayLike, mapFn)` - Array constructor, can map values on the way in.
+* `a.includes(val, fromIndex)` - True if array has `val`.
+* `a.indexOf(val)` - Return index of first `val`, or -1.
+* `a.join(separator)` - join into an array.
+* `a.keys()` - Returns iterator of all keys.
+* `a.lastIndexOf(val)` - Return index of last `val`, or -1.
+* `a.map(fn)` - Returns new array, mapped.
+* `a.pop()` - Remove and return last element.
+* `a.push(val)` - Add element in-place, returns the new length.
+* `a.reduce(fn, init)` - Typical reduce.
+* `a.reduceRight(fn, init)` - Reduce from the right.
+* `a.reverse()` - Reverses array in-place, returns self.
+* `a.shift()` - Remove and return the first element.
+* `a.slice(start, end)` - Returns shallow copy of array subset.
+* `a.some(fn)` - True if at least one element returns true from `fn`.
+* `a.sort(fn)` - Sorts in place, optional comparator.
+* `a.splice(start, count, ...new)` - Removes elements from the array, optionally replacing with new vals.  Operates in place.
+* `a.toLocaleString(locale)` - I don't really understand this, honestly.
+* `a.toReversed()` - Returns copy of the array with elements reversed.
+* `a.toSorted(fn)` - Returns copy of the array with elements sorted.
+* `a.toSpliced(start, count, ...new)` - Returns copy of the array with elements spliced.
+* `a.toString()` - Seems equivalent to `a.join(',')`.
+* `a.unshift(...vals)` - Push elemens on to beginning of array, return new length.
+* `a.values()` - Return array iterator of values.
+* `a.with(idx, val)` - Return new array, with `idx` set to `val`.
+
+And "experimentally" (not yet in all browsers):
+
+* `fromAsync(arrayLike, mapFn)`
+* `group(fn)` - Returns an object (pseudo-map) of arrays, keyed by the result of `fn`. Only if keys are strings.
+* `groupToMap(fn)` - Returns an object (pseudo-map) of arrays, keyed by the result of `fn`. Works for any key type.
+
+#### Set
+
+Sets are ordered by insertion order.  They work on any value type, using SameValueZero.
+
+Operations include:
+
+* `s.add(val)` - Add a value, no op if it's already there.
+* `s.clear()` - Remove all values.
+* `s.delete(val)` - Remove value from the set, no op if not there.
+* `s.entries()` - Returns set iterator with the same val for both key and value.
+* `s.forEach(fn)` - Call `fn` on each element.  fn gets the value twice, plus the whole set, as args.
+* `s.has(val)` - True if found, false if not.
+* `s.keys()` - Alias of `s.values()`.
+* `s.values()` - Returns set iterator of values.
+
 
 #### Map
 
