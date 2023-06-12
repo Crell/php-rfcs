@@ -296,7 +296,7 @@ I see a number of options, in no particular order:
 4. Same opt-in, but with... traits.  (There, I said it.)  Core could provide a bunch of traits that include one or more methods, which collection authors could `use`.  This is more natural than magic interfaces, but then cannot be typed against.
 5. There's a possibility that FIG could provide a standard lib of collection traits for things not worth including in core.  I don't know if there would be interest, but the process for doing so is now in place.
 6. Laravel provides a `macro()` operation that registers new functions as methods, via `__call()`.  Something like that could be possible, though I'm not sure how useful it is if collections always involve defining a type, where you could just put your own methods/traits/whatever in the first place.  It would only be useful for allowing 3rd parties to extend someone else's collection, although whether that's wise is debatable.
-   7A pipe operator.  One of the advantages of pipes is that it gives method-feeling call semantics without requiring methods to be declared up front.  That would allow for a minimalist collection, as almost anything else could be built on top of it.  Of course, both pipes and PFA were declined so that seems hard to bank on, unless collections became part of the argument for pipes.
+7. A pipe operator.  One of the advantages of pipes is that it gives method-feeling call semantics without requiring methods to be declared up front.  That would allow for a minimalist collection, as almost anything else could be built on top of it.  Of course, both pipes and PFA were declined so that seems hard to bank on, unless collections became part of the argument for pipes.
 
 At the moment, none of these seem like a clear winner to me.
 
@@ -332,7 +332,7 @@ For comparison, let's see what some other competing languages do.
 
 ### Python
 
-Python has built in List, Dict, Set, and Deque types.  It has no Queue or Stack.  List has a `pop()` method so it can be used as a Stack.  Deque can, however.  Oh dear, do we also need to include Deque?
+Python has built in List, Dict, Set, and Deque types.  It has no Queue or Stack.  List has a `pop()` method so it can be used as a Stack.  Deque is used for queues.  Oh dear, do we also need to include Deque?
 
 #### List
 
@@ -503,7 +503,7 @@ Operations I can find include:
 * `compactMap<T>($fn)` - Same as `map()`, but then filters out `nil` values.
 * `reduce($init, $fn)` - The obvious.
 * `sorted()` - A new set, sorted.  Ony works if the values are `Comparable`.
-* `shuffled()`
+* `shuffled()` - A new set, shuffled.
 
 #### Dictionary
 
@@ -861,17 +861,15 @@ There is a haphazard set of APIs to convert between Maps and arrays of 2-value a
 
 Operations include:
 
-`m.size` - Property
-`m.clear()` - Empty the map
-`m.forEach(fn)` - Call `fn` with each key/value pair.
-`m.get(key)` - Return value or undefined.
-`m.set(key, val)` - Sets the value.
-`m.has(key)` - True if found, false if not.
-`m.keys()` - Returns all keys as an iterator object.
-`m.values()` - Returns all values as an iterator object.
-`new Map([...m1, ...m2])` - Creates an array of k/v from both maps, then makes a new map out of that.
-
-
+* `m.size` - Property
+* `m.clear()` - Empty the map
+* `m.forEach(fn)` - Call `fn` with each key/value pair.
+* `m.get(key)` - Return value or undefined.
+* `m.set(key, val)` - Sets the value.
+* `m.has(key)` - True if found, false if not.
+* `m.keys()` - Returns all keys as an iterator object.
+* `m.values()` - Returns all values as an iterator object.
+* `new Map([...m1, ...m2])` - Creates an array of k/v from both maps, then makes a new map out of that.
 
 ### Rust
 
