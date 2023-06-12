@@ -334,6 +334,8 @@ For comparison, let's see what some other competing languages do.
 
 Python has built in List, Dict, Set, and Deque types.  It has no Queue or Stack.  List has a `pop()` method so it can be used as a Stack.  Deque is used for queues.  Oh dear, do we also need to include Deque?
 
+In Python 3, all collection types are lazy by default.  This distinction is *mostly* hidden from the developer, except when it isn't.
+
 #### List
 
 List's methods include:
@@ -873,4 +875,71 @@ Operations include:
 
 ### Rust
 
+## Language summary
 
+| Language/Tool | Seq | Map | Set | Dequeue | Scope      | Immutable versions | Lazy version |
+|---------------|-----|-----|-----|---------|------------|--------------------|--------------|
+| Doctrine      | N   | Y   | N   | N       | Expansive  | N                  | Y            |
+| Laravel       | N   | Y   | N   | N       | Expansive  | N                  | Y            |
+| Python        | Y   | Y   | Y   | Y       | Minimalist | N                  | Y            |
+| Swift         | Y   | Y   | Y   | N       | Expansive  | Y (indirectly)     | Y            |
+| Go            | Y   | Y   | N   | N       | Minimalist | N                  | N            |
+| Kotlin        | Y   | Y   | Y   | N       | Expansive  | Y                  | N            |
+| Javascript    | Y   | Y   | Y   | N       | Expansive  | N                  | N            |
+
+So if we want to go based on what our peer languages and existing libraries do, then it seems we should:
+
+* Include separate Seq, Map, and Set constructs.
+* Dequeue is optional, but nice-to-have.  (There's also an old existing RFC for it: https://wiki.php.net/rfc/deque)
+* Since PHP lacks a sideways post-code object extension mechanism, we need to go expansive with the API. (i.e., include most practical operations out of the box.)
+* We do not need dedicated immutable versions, unless we decide that's easy to do.
+* We should strongly consider if we can build a lazy version of each collection type.
+
+The other big challenge is the type.  Some operations naturally would produce a collection of a different type, which, lacking generics, gets hard.  It would necessitate all of those operations specifying what pre-defined type to produce (as in the map examples further up).  That would be... unfortunate, but I don't see a way around it.  Ideally, we could design it in a way that makes that explicitness optional in the future, as the language evolves.  Fortunately, upon review, I *think* that would apply only to the various `map` variants and any `toOtherCollectionType()` methods.  So maybe this is just an acceptable wart.
+
+Several languages (Swift, Kotlin, and Javascript) all use the `*ed` pattern to differentiate between modify-in-place and create-new patterns.  I quite like that, and we should do it.  The only question is if we should do it across the board (including things like map and filter), or only on selected operations like sort.  (All three of those languages did it only selectively.)
+
+Several languages (Python, Swift, Kotlin) include at least some level of operator overloading for collection types, in addition to method variants.  I feel strongly that we should do the same.
+
+In order to use non-primitives in a Map, or to have Sets at all, there must be a way to produce a reliable hash of an object.  An unhashable object cannot be put into a Map key or Set.  A default hash that just recursively uses all properties of the object is reasonable, but in practice I think we are going to need a way to override that for custom objects.  That could be a `Hashable` interface or a `__hash()` magic method.  Both have pros and cons.
+
+We need to decide if we want ordered or explicitly unordered Map and Set.  It would likely be more PHP-ish to have them ordered, so they're more similar to arrays, but there may be arguments against that as well (eg, performance).
+
+In order to sort non-primitive collections, we *could* get away with providing a comparator as we do now.  (Basically merge `sort()` and `usort()`.)  However, I also feel this is yet another argument in favor of proper native comparison methods on objects, in the vein of Jordan LD's previous RFC.  We're going to have to add that sooner or later, IMO.
+
+We will need an explicitly defined API for getting from one collection type to another.  Eg, `Seq::toMap($type)` will return a map with all the values from the sequence and their sequence index as the key.  `Map::toSeq()` will return a sequence with all the values from the map, but all keys ignored.  Etc.  If we have lazy collections, we'll need to figure that out, as well.
+
+### Lazy collections
+
+Lazy collections could be extremely useful; in practice, they'd be essentially wrapping a generator into a collection shell, so that we can operate with them the same way.  (Just like `foreach()` does.)  However, not all operations on materialized collections are sensible on lazy collections.  Sorting, for instance, makes little sense on a lazy collection, whereas `map`, `filter`, and `reduce` do.  `indexOf` most likely would not.  `count()` might make sense depending on the circumstances, Etc.
+
+That, to me, suggests that the functionality should be grouped into high-coehsion interfaces (akin to `IteratorAggregate`, and then we provide C-optimized versions of the materialized variant.  At that point, we may be able to punt lazy collections to user space, something like:
+
+```php
+class MyLazyBooks implements IteratorAggregate, Mappable, Filterable
+{
+    public function __construct(private \Generator $generator) {}
+
+    public function map(\Closure $fn, string $targetType) {
+        return new $targetType(function () {
+            foreach ($this->generator as $v) {
+                yield $fn($v);
+            }
+        });
+    }
+
+    public function filter(\Closure $fn) {
+        return new $targetType(function () {
+            foreach ($this->generator as $v) {
+                if ($fn($v)) {
+                    yield $v;
+                }
+            }
+        });
+    }
+
+    // ...
+}
+```
+
+That said, those certainly look generic enough that they could be baked into the system, too, and probably faster than in user space.  So, maybe it does make sense to have both `Seq` and `LazySeq` in core?
