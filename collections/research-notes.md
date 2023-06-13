@@ -463,7 +463,7 @@ Some highlights:
 * `compactMap<T>($fn)` - Same as `map()`, but then filters out `nil` values.
 * `reduce($init, $fn)` - The obvious.
 * `lazy` - A property, which is the same Array but with map, filter, etc. implemented lazily.
-
+* `joined($separator)` - Like `implode()`.
 
 #### Set
 
@@ -825,7 +825,7 @@ Operations include:
 * `a.toSorted(fn)` - Returns copy of the array with elements sorted.
 * `a.toSpliced(start, count, ...new)` - Returns copy of the array with elements spliced.
 * `a.toString()` - Seems equivalent to `a.join(',')`.
-* `a.unshift(...vals)` - Push elemens on to beginning of array, return new length.
+* `a.unshift(...vals)` - Push elements on to beginning of array, return new length.
 * `a.values()` - Return array iterator of values.
 * `a.with(idx, val)` - Return new array, with `idx` set to `val`.
 
@@ -1000,12 +1000,13 @@ These are operations for which there is a natural and obvious syntax using known
 | $s -= iterable  | remove/subtract in place | Ibid.                                                                                         |
 | $s - T          | remove                   | We should include both +T and -T, or neither.                                                 |
 | isset($seq[$i]) | has                      | $i is a number.                                                                               |
-| unset($seq[$i]) | remove(): self           | $i is a number. Method version returns $this for chaining, but modifies in place.             |
-| $s[] = $val     | add($val): self          | Adds to the end of the list. Method returns $this for chaining.                               |
-| $s[$i] = $val   | set($i, $val): self      | Error if index $i doesn't already exist, or could fall back to []. Good arguments for either. |
+| unset($seq[$i]) | remove(): static         | $i is a number. Method version returns $this for chaining, but modifies in place.             |
+| $s[] = $val     | add($val): static        | Adds to the end of the list. Method returns $this for chaining.                               |
+| $s[$i] = $val   | set($i, $val): static    | Error if index $i doesn't already exist, or could fall back to []. Good arguments for either. |
 | $s == $s2       | equals(): bool           | True if both sequences have the same values in the same order.                                |
 | (bool)$s2       | empty(): bool            | We should mirror arrays here, not objects. So an empty list is false, anything else is true.  |
-|                 |                          |                                                                                               |
+| count($s)       | count()                  | Standard `Countable` behavior.                                                                |
+| empty($s)       | empty(): bool            | True if the collection is empty, false if it has a value.                                     |
 
 We could in concept define operations for * and /, but I don't think there's an "obvious" one.
 
@@ -1024,12 +1025,12 @@ I could debate if we should support any iterable or only the exact same type.  I
 | $s -= iterable      | remove/subtract in place             | Ibid.                                                                                                                                                          |
 | $s - T              | remove(T)                            | This should be the key for map, IMO, but that just feels weird.                                                                                                |
 | isset($set[$val])   | has()                                | $val is the value to find.                                                                                                                                     |
-| unset($set[$val])   | remove(): self                       | $val is the value to find.                                                                                                                                     |
-| $set pipe iterable  | union(): self                        | (Markdown issues using the actual char.) Returns new set of same type. It seems we could support any iterable here, since we just want a list of values.       |
-| $set pipe= iterable | union(): self in place               | Not quite equivalent to `$set = $set pipe iterable`, as that wouldn't be truly updating in place in case of an object passed to a method.                      |
-| $set & iterable     | intersected($s2): self               | Ibid.                                                                                                                                                          |
-| $set &= iterable    | intersect($s2): self                 | Same note as for pipe/union.                                                                                                                                   |
-| $set[] = $val       | add($val): self                      | Add value, or no-op if it's already there. Method returns $this for chaining.                                                                                  |
+| unset($set[$val])   | remove(): static                     | $val is the value to find.                                                                                                                                     |
+| $set pipe iterable  | union(): static                      | (Markdown issues using the actual char.) Returns new set of same type. It seems we could support any iterable here, since we just want a list of values.       |
+| $set pipe= iterable | union(): static  in place            | Not quite equivalent to `$set = $set pipe iterable`, as that wouldn't be truly updating in place in case of an object passed to a method.                      |
+| $set & iterable     | intersected($s2): static             | Ibid.                                                                                                                                                          |
+| $set &= iterable    | intersect($s2): static               | Same note as for pipe/union.                                                                                                                                   |
+| $set[] = $val       | add($val): static                    | Add value, or no-op if it's already there. Method returns $this for chaining.                                                                                  |
 | $set <= $s2         | isSubsetOf($s2): bool                | True if $s2 contains all values of $set, optionally with more.                                                                                                 |
 | $set < $s2          | isStrictSubsetOf($s2): bool          | True if $s2 contains all values of $set and at least one more.                                                                                                 |
 | $set >= $s2         | isSupersetOf()                       | True if $set contains all values of $s2, optionally with more.                                                                                                 |
@@ -1037,7 +1038,8 @@ I could debate if we should support any iterable or only the exact same type.  I
 | $s == $s2           | equals(): bool                       | True if both sets contain the same values. Interestingly, no other language seems to have a method here, just the operator. Compares the hashes for stability. |
 | $s === $s2          | strictEquals(): bool                 | True if both sets contain the same values, in the same order. I am not sure about this one.                                                                    |
 | (bool)$s            | empty(): bool                        | We should mirror arrays here, not objects. So an empty set is false, anything else is true.                                                                    |
-|                     |                                      |                                                                                                                                                                |
+| count($s)           | count()                              | Standard `Countable` behavior.                                                                                                                                 |             
+| empty($s)           | empty(): bool                        | True if the collection is empty, false if it has a value.                                                                                                      |
 
 `unioned()` and `intersected()` feel a bit weird to me here, as that is not something anyone else is doing, I think.  Swift and Python do have separate methods for in-place and return-new, but use totally different naming conventions.  I do see a value to having both versions, especially for consistency with the operators.
 
@@ -1056,11 +1058,13 @@ Should we be calling these Dictionaries to avoid confusion with the `map()` meth
 | $m - iterable     | remove/subtract          | Maybe.  Unclear if it should work on keys or values.                                                                             |
 | $m -= iterable    | remove/subtract in place | Ibid.                                                                                                                            |
 | isset($map[$key]) | has()                    | For map, $key is the key to find.                                                                                                |
-| unset($map[$key]) | remove(): self           | For map, $key is the key to find.                                                                                                |
-| $m[$key] = $val   | set($key, $val): self    | Set the value, overwrite if necessary.                                                                                           |
+| unset($map[$key]) | remove(): static         | For map, $key is the key to find.                                                                                                |
+| $m[$key] = $val   | set($key, $val): static  | Set the value, overwrite if necessary.                                                                                           |
 | $m == $m2         | equals()                 | True if both maps have the same key/value pairs.                                                                                 |
 | $m === $m2        | strictEquals()           | True if both maps have the same key/value pairs, in the same order.                                                              |
 | (bool)$m2         | empty(): bool            | We should mirror arrays here, not objects. So an empty map is false, anything else is true.                                      |
+| count($s)         | count()                  | Standard `Countable` behavior.                                                                                                   |             
+| empty($s)         | empty(): bool            | True if the collection is empty, false if it has a value.                                                                        |
 |                   |                          |                                                                                                                                  |
 |                   |                          |                                                                                                                                  |
 |                   |                          |                                                                                                                                  |
@@ -1078,18 +1082,18 @@ These are the core functional programming operations on collections.
 
 * `map(callable(T) $fn, $targetType): Seq` - Returns a `$targetType` of the same size, where all values have been mapped through `$fn`.
 * `mapIndexed(callable(T, int) $fn, $targetType): Seq` - Same, but `$fn` is also passed the index.
-* `filter(callable(T) $fn): self` - Returns the same type, but containing only those values for which `$fn` returned true.
-* `filterIndexed(callable(T, int) $fn): self` - Same, but `$fn` is also passed the index.
+* `filter(callable(T) $fn): static` - Returns the same type, but containing only those values for which `$fn` returned true.
+* `filterIndexed(callable(T, int) $fn): static` - Same, but `$fn` is also passed the index.
 * `foldl($init, callable(mixed $carry, T $item): mixed)` - Does a fold-left (from 0 working up), starting with `$init`.  `$init` comes first to make inlining easier.
 * `foldr($init, callable(mixed $carry, T $item): mixed)` - Does a fold-right (from the end, working down), starting with `$init`.
 * `reduce($init, callable(mixed $carry, T $item): mixed)` - Alias of `foldl()`.
 
-I'm not sure if we need indexed versions of the reduce operations.  It feels odd to omit them, but it would be three extra methods with funky names.
+I'm not sure if we need indexed versions of the reduce operations.  It feels odd to omit them, but it would be three extra methods with funky names.  For that matter... if it's fast to convert a seq to a map, then just converting it to a map first and calling `map()`/`filter()`, etc. on that would avoid the need for the indexed versions.  It's rare enough that we can probably get away with that, assuming the translation is fast enough.
 
 #### Set
 
 * `map(callable(T) $fn, $targetType): Seq` - Returns a `$targetType` of the same size, where all values have been mapped through `$fn`.
-* `filter(callable(T) $fn): self` - Returns the same type, but containing only those values for which `$fn` returned true.
+* `filter(callable(T) $fn): static` - Returns the same type, but containing only those values for which `$fn` returned true.
 * `foldl($init, callable(mixed $carry, T $item): mixed)` - Does a fold-left (from 0 working up), starting with `$init`.  `$init` comes first to make inlining easier.
 * `foldr($init, callable(mixed $carry, T $item): mixed)` - Does a fold-right (from the end, working down), starting with `$init`.
 * `reduce($init, callable(mixed $carry, T $item): mixed)` - Alias of `foldl()`.
@@ -1100,17 +1104,21 @@ Sets don't need an indexed version.
 
 * `map(callable(TV) $fn, $targetType): Map` - Returns a `$targetType` of the same size, where all values have been mapped through `$fn`.
 * `mapIndexed(callable(TV, TK) $fn, $targetType): Seq` - Same, but `$fn` is also passed the key.
-* `filter(callable(TV) $fn): self` - Returns the same type, but containing only those values for which `$fn` returned true.
-* `filterIndexed(callable(TV, TK) $fn): self` - Same, but `$fn` is also passed the key.
+* `filter(callable(TV) $fn): static` - Returns the same type, but containing only those values for which `$fn` returned true.
+* `filterIndexed(callable(TV, TK) $fn): static` - Same, but `$fn` is also passed the key.
 * `foldl($init, callable(mixed $carry, TV $item, $TK $key): mixed)` - Does a fold-left (from 0 working up), starting with `$init`.
 * `foldr($init, callable(mixed $carry, TV $item, $TK $key): mixed)` - Does a fold-right (from the end, working down), starting with `$init`.
 * `reduce($init, callable(mixed $carry, TV $item, $TK $key): mixed)` - Alias of `foldl()`.
+
+(Whether the order in the callbacks is `$key, $value` or `$value, $key` is up for debate.)
+
+We could arguably skip the non-indexed versions here and just always pass both key and value.  It's a map, so that's reasonable to expect, but some functions may still get tripped up by it.
 
 ### Basic operations
 
 The following are still "basic" operations on a collection that are widely supported, but don't have an operator equivalent.
 
-All of these operations have an equivalent in at least 3 of the 5 other languages surveyed.
+All of these operations have an equivalent in at least 4 of the 7 other languages/libraries surveyed.
 
 #### Seq
 
@@ -1119,6 +1127,67 @@ All of these operations have an equivalent in at least 3 of the 5 other language
 * `none(callable(T) $fn): bool` - True if at no values return true from `$fn`.
 * `first(): T` - The value at index 0.  Returns null and raises warning if empty.  (Or should it Error? Sigh, we need Optionals.)
 * `last(): T` - The value at index count-1.  Returns null and raises warning if empty.  (Or should it Error? Sigh, we need Optionals.)
-
-
+* `sort(callable(T, T): int)` - Sort the seq in place, using the comparator. If not provided, sort "naturally".  (Whatever `sort()` does today.)  Though an integrated comparison override method would be even better.
+* `sorted(callable(T, T): int)` - Same, but returns new rather than modifying in place. Shallow copy.
+* `clear(): static` - Remove all items from the sequence.  Modifies in place. Returns $this.
+ 
 I've omitted `*Indexed` versions here as most other languages don't have them.
+
+### Extended operations
+
+The following are optional, I'd argue.  They're useful, and commonly implemented (at least 4 of the 7 targets surveyed), but are arguably not critical.
+
+#### Seq
+
+* `reverse(): static` - Reverse the order of the list, in place. Returns $this.
+* `reversed(): static` - Same, but returns a new list rather than modifying in place.  Shallow copy.
+* `groupBy(callable(T): T2 $fn, string $targetType): Map` - Calls `$fn` on each item, then creates a new Map of the specified type, the elements of which are the type of the original Seq, and keyed by the results of `$fn`.  The target type must be Map<T2, OriginalSeq>.  It's a Type error otherwise.
+
+### Highly useful operations
+
+The following are not as widely implemented, but I believe for PHP's purposes we ought to include them from the start.
+
+#### Seq
+
+* `with($val): static` - Returns a new instance with the new value added.  Shallow copy.
+
+#### Set
+
+* `with($val): static` - Returns a new instance with the new value added.  Shallow copy.  Return $this if $val is already present.
+* `without($val): static` - Returns a new instance with the value removed.  Shallow copy.  Returns $this if not already present.
+
+#### Map
+
+* `with(TK $key, TV $val): static` - Returns a new instance with the key/value pair added.  Shallow copy.
+* `without(TK $key): static` - Returns a new instance with the specified key removed.  Shallow copy.  Returns $this if not already present.
+
+### Stack operations
+
+The following are useful on Seq to let it be used as a stack.  They are implemented on at least some other targets, but not the 4/7 threshold.
+
+* `pop():T ` - Remove and return the last item in the sequence.
+* `push(): static` - Same as `add()`.  Convenience method for standard API.  Modifies in place, returns $this.
+* `peek(): T` - Same as `last()`.  Convenience method for standard API.
+
+### Extended functional operations
+
+The following are not widely implemented, but I believe are good to include for a more complete FP experience.  Lack of them would not torpedo the RFC, however.
+
+#### Seq
+
+* `head(): T` - Returns the first element.  Alias of first().
+* `tail(): static` - Returns all but the first element in a new Seq of the same type.  Shallow copy. We could also have an optional parameter to control how many items to skip, defaulting to 1.  (Some languages have that.)
+
+### Extended operations
+
+The following are implemented in less than 4 of the targeted systems, but still available in multiple.  They are potentially useful but probably don't need to be in the initial RFC.
+
+#### Seq
+
+* `implode(string $glue): string` - The obvious.
+
+#### Set
+
+#### Map
+
+* `implode(string $glue, string $separator): string` - Implode, using $separator between the key and value, and $glue between each k/v pair.
