@@ -943,3 +943,182 @@ class MyLazyBooks implements IteratorAggregate, Mappable, Filterable
 ```
 
 That said, those certainly look generic enough that they could be baked into the system, too, and probably faster than in user space.  So, maybe it does make sense to have both `Seq` and `LazySeq` in core?
+
+## API clustering and levels
+
+Let's try breaking down the possible API operations into groups, and see which ones make sense for PHP.  The heuristic being applied here is:
+
+* We have to include the core functional APIs.
+* Anything that has an operator/language equivalent, let’s use, and have a method version.
+* Anything used by X or more of our peer languages (for some definition of peer) is fair game.
+
+### Construction and conversion
+
+We'll end up with at least 4 collection types (Seq, Set, Map, array), and translating between them needs to be easy.  Here's my proposal:
+
+Given:
+
+```php
+collection(Seq) BookList(Book) {}
+collection(Set) BookSet(Book) {}
+collection(Map) BookMap(int, Book) {}
+```
+
+* `new BookList(), new BookSet(), new BookMap()` - Standard constructor.  Make a new collection.
+* `$seq = BookList::from($iterable)` - Read the values of `$iterable` into a new instance, ignoring keys.
+* `$set = BookSet::from($iterable)` - Read the values of `$iterable` into a new instance, ignoring keys. Duplicates get removed along the way.
+* `$map = BookMap::from($iterable)` - Read the values of `$iterable` into a new instance, using the keys.  Both key and value types must match, or it's a type error.
+* `$set = $seq->toSet(BookSet::class)` - Returns a new set, ignoring duplicates.  Equivalent of foreaching over `$seq` and calling `add()` repeatedly. 
+* `$map = $seq->toMap(BookMap::class)` - Returns a new map, using the indexes as keys. Only available if `BookMap` has an integer key, otherwise a type error.
+* `$seq = $set->toSeq(BookList::class)` - Returns a new sequence, in order.  Equivalent of foreaching over `$set` and calling `add()` repeatedly. 
+* `$map = $set->toMap(BookMap::class)` - Returns a new map, using the hashes as keys. Only available if `BookMap` has a string key, otherwise a type error.  I'm not sure if this one makes complete sense, depending on how the hashes work.
+* `$seq = $map->toSeq(BookList::class)` - Returns a new sequence, in order.  Equivalent of foreaching over `$set` and calling `add()` repeatedly. 
+* `$set = $map->toSet(BookSet::class)` - Returns a new set, with just the unique values of the map.  Keys are ignored.
+* `$seq = $map->keys(IntList::class)` - Returns a seq of keys. The list must be typed to the TK of the map.  Should this just return an array?
+* `$seq = $map->values(BookList::class)` - Returns a seq of values. The list must be typed to the TK of the map.  Should this just return an array?
+* `$arr = $seq->toArray()` - Returns a boring compacted array of values.
+* `$arr = $set->toArray()` - Returns a boring compacted array of values.  The hash values are discarded.
+* `$arr = $map->toArray()` - Returns a boring associative array of values.  If the TK type is not int or string, this is a TypeError.
+
+The need to provide the target type is... really annoying. :-(
+
+Technically, the `to*()` methods can also be achieved using `from()` since all the collections are iterable.  However, the fluent method is a much nicer DX and better supports chaining.
+
+
+### Operator-based operations
+
+These are operations for which there is a natural and obvious syntax using known operators and core constructs (like `unset()`), and their equivalent methods.  I believe these are part of the "bare minimum" that would be considered an acceptable API.
+
+#### Seq
+
+| Operator        | Method                   | Notes                                                                                         |
+|-----------------|--------------------------|-----------------------------------------------------------------------------------------------|
+| $s + iterable   | concated/appended        | Return new. On Set, silently remove duplicates. On Map, use matching keys from the first.     |
+| $s += iterable  | concat/append in place   | Could be a naive impl, or an optimized one.                                                   |
+| $s + T          | add                      | Returns new.  Some languages do this.  It's overloaded, which may be less easy to implement.  |
+| $s - iterable   | remove/subtract          | Returns new.  Values in $s not also in the values part of iterable.                           |
+| $s -= iterable  | remove/subtract in place | Ibid.                                                                                         |
+| $s - T          | remove                   | We should include both +T and -T, or neither.                                                 |
+| isset($seq[$i]) | has                      | $i is a number.                                                                               |
+| unset($seq[$i]) | remove(): self           | $i is a number. Method version returns $this for chaining, but modifies in place.             |
+| $s[] = $val     | add($val): self          | Adds to the end of the list. Method returns $this for chaining.                               |
+| $s[$i] = $val   | set($i, $val): self      | Error if index $i doesn't already exist, or could fall back to []. Good arguments for either. |
+| $s == $s2       | equals(): bool           | True if both sequences have the same values in the same order.                                |
+| (bool)$s2       | empty(): bool            | We should mirror arrays here, not objects. So an empty list is false, anything else is true.  |
+|                 |                          |                                                                                               |
+
+We could in concept define operations for * and /, but I don't think there's an "obvious" one.
+
+It's also unclear to me what <, >, etc. would mean on a sequence.  On lists, I don't think there's a meaningful difference between == and ===, so maybe include both just to avoid being confusing?
+
+I could debate if we should support any iterable or only the exact same type.  Iterable feels more flexible, but there may be lurking issues.
+
+#### Set
+
+| Operator            | Method                               | Notes                                                                                                                                                          |
+|---------------------|--------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| $s + iterable       | concat/append                        | Return new. On Set, silently remove duplicates. On Map, use matching keys from the first.                                                                      |
+| $s += iterable      | concat/append in place               | Could be a naive impl, or an optimized one.                                                                                                                    |
+| $s + T              | add                                  | Some languages do this.  It's overloaded, which may be less easy to implement.                                                                                 |
+| $s - iterable       | remove/subtract                      | Returns new. Values in $s not also in the value part of the iterable.                                                                                          |
+| $s -= iterable      | remove/subtract in place             | Ibid.                                                                                                                                                          |
+| $s - T              | remove(T)                            | This should be the key for map, IMO, but that just feels weird.                                                                                                |
+| isset($set[$val])   | has()                                | $val is the value to find.                                                                                                                                     |
+| unset($set[$val])   | remove(): self                       | $val is the value to find.                                                                                                                                     |
+| $set pipe iterable  | union(): self                        | (Markdown issues using the actual char.) Returns new set of same type. It seems we could support any iterable here, since we just want a list of values.       |
+| $set pipe= iterable | union(): self in place               | Not quite equivalent to `$set = $set pipe iterable`, as that wouldn't be truly updating in place in case of an object passed to a method.                      |
+| $set & iterable     | intersected($s2): self               | Ibid.                                                                                                                                                          |
+| $set &= iterable    | intersect($s2): self                 | Same note as for pipe/union.                                                                                                                                   |
+| $set[] = $val       | add($val): self                      | Add value, or no-op if it's already there. Method returns $this for chaining.                                                                                  |
+| $set <= $s2         | isSubsetOf($s2): bool                | True if $s2 contains all values of $set, optionally with more.                                                                                                 |
+| $set < $s2          | isStrictSubsetOf($s2): bool          | True if $s2 contains all values of $set and at least one more.                                                                                                 |
+| $set >= $s2         | isSupersetOf()                       | True if $set contains all values of $s2, optionally with more.                                                                                                 |
+| $set > $s2          | isSupersetOf(), isStrictSupersetOf() | True if $sset contains all values of $s2 and at least one more.                                                                                                |
+| $s == $s2           | equals(): bool                       | True if both sets contain the same values. Interestingly, no other language seems to have a method here, just the operator. Compares the hashes for stability. |
+| $s === $s2          | strictEquals(): bool                 | True if both sets contain the same values, in the same order. I am not sure about this one.                                                                    |
+| (bool)$s            | empty(): bool                        | We should mirror arrays here, not objects. So an empty set is false, anything else is true.                                                                    |
+|                     |                                      |                                                                                                                                                                |
+
+`unioned()` and `intersected()` feel a bit weird to me here, as that is not something anyone else is doing, I think.  Swift and Python do have separate methods for in-place and return-new, but use totally different naming conventions.  I do see a value to having both versions, especially for consistency with the operators.
+
+We could in concept define operations for * and /, but I don't think there's an "obvious" one.  Jordan may have suggestions here, though.
+
+Of note there is no `$set[$key]` read or write operation, as the key used is entirely opaque.  It's only relevant when checking the value with isset/unset.
+
+#### Map
+
+Should we be calling these Dictionaries to avoid confusion with the `map()` method?  I know it's a common name, but... not universal.
+
+| Operator          | Method                   | Notes                                                                                                                            |
+|-------------------|--------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| $m + iterable     | concated/appended        | In case of duplicate keys, use the values in $m.  This one is more likely to only take another Map, not any iterable. Debatable. |
+| $m += iterable    | concat/append in place   | Could be a naive impl, or an optimized one.                                                                                      |
+| $m - iterable     | remove/subtract          | Maybe.  Unclear if it should work on keys or values.                                                                             |
+| $m -= iterable    | remove/subtract in place | Ibid.                                                                                                                            |
+| isset($map[$key]) | has()                    | For map, $key is the key to find.                                                                                                |
+| unset($map[$key]) | remove(): self           | For map, $key is the key to find.                                                                                                |
+| $m[$key] = $val   | set($key, $val): self    | Set the value, overwrite if necessary.                                                                                           |
+| $m == $m2         | equals()                 | True if both maps have the same key/value pairs.                                                                                 |
+| $m === $m2        | strictEquals()           | True if both maps have the same key/value pairs, in the same order.                                                              |
+| (bool)$m2         | empty(): bool            | We should mirror arrays here, not objects. So an empty map is false, anything else is true.                                      |
+|                   |                          |                                                                                                                                  |
+|                   |                          |                                                                                                                                  |
+|                   |                          |                                                                                                                                  |
+|                   |                          |                                                                                                                                  |
+
+It's also unclear to me what <, >, etc. would mean on a map.
+
+We could in concept define operations for * and /, but I don't think there's an "obvious" one.  Jordan may have suggestions here, though.
+
+### Functional operations (core)
+
+These are the core functional programming operations on collections.
+
+#### Seq
+
+* `map(callable(T) $fn, $targetType): Seq` - Returns a `$targetType` of the same size, where all values have been mapped through `$fn`.
+* `mapIndexed(callable(T, int) $fn, $targetType): Seq` - Same, but `$fn` is also passed the index.
+* `filter(callable(T) $fn): self` - Returns the same type, but containing only those values for which `$fn` returned true.
+* `filterIndexed(callable(T, int) $fn): self` - Same, but `$fn` is also passed the index.
+* `foldl($init, callable(mixed $carry, T $item): mixed)` - Does a fold-left (from 0 working up), starting with `$init`.  `$init` comes first to make inlining easier.
+* `foldr($init, callable(mixed $carry, T $item): mixed)` - Does a fold-right (from the end, working down), starting with `$init`.
+* `reduce($init, callable(mixed $carry, T $item): mixed)` - Alias of `foldl()`.
+
+I'm not sure if we need indexed versions of the reduce operations.  It feels odd to omit them, but it would be three extra methods with funky names.
+
+#### Set
+
+* `map(callable(T) $fn, $targetType): Seq` - Returns a `$targetType` of the same size, where all values have been mapped through `$fn`.
+* `filter(callable(T) $fn): self` - Returns the same type, but containing only those values for which `$fn` returned true.
+* `foldl($init, callable(mixed $carry, T $item): mixed)` - Does a fold-left (from 0 working up), starting with `$init`.  `$init` comes first to make inlining easier.
+* `foldr($init, callable(mixed $carry, T $item): mixed)` - Does a fold-right (from the end, working down), starting with `$init`.
+* `reduce($init, callable(mixed $carry, T $item): mixed)` - Alias of `foldl()`.
+
+Sets don't need an indexed version.
+
+#### Map
+
+* `map(callable(TV) $fn, $targetType): Map` - Returns a `$targetType` of the same size, where all values have been mapped through `$fn`.
+* `mapIndexed(callable(TV, TK) $fn, $targetType): Seq` - Same, but `$fn` is also passed the key.
+* `filter(callable(TV) $fn): self` - Returns the same type, but containing only those values for which `$fn` returned true.
+* `filterIndexed(callable(TV, TK) $fn): self` - Same, but `$fn` is also passed the key.
+* `foldl($init, callable(mixed $carry, TV $item, $TK $key): mixed)` - Does a fold-left (from 0 working up), starting with `$init`.
+* `foldr($init, callable(mixed $carry, TV $item, $TK $key): mixed)` - Does a fold-right (from the end, working down), starting with `$init`.
+* `reduce($init, callable(mixed $carry, TV $item, $TK $key): mixed)` - Alias of `foldl()`.
+
+### Basic operations
+
+The following are still "basic" operations on a collection that are widely supported, but don't have an operator equivalent.
+
+All of these operations have an equivalent in at least 3 of the 5 other languages surveyed.
+
+#### Seq
+
+* `all(callable(T) $fn): bool` - True if all values return true from `$fn`.
+* `any(callable(T) $fn): bool` - True if at least one value returns true from `$fn`.
+* `none(callable(T) $fn): bool` - True if at no values return true from `$fn`.
+* `first(): T` - The value at index 0.  Returns null and raises warning if empty.  (Or should it Error? Sigh, we need Optionals.)
+* `last(): T` - The value at index count-1.  Returns null and raises warning if empty.  (Or should it Error? Sigh, we need Optionals.)
+
+
+I've omitted `*Indexed` versions here as most other languages don't have them.
