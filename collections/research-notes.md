@@ -1014,22 +1014,22 @@ These are operations for which there is a natural and obvious syntax using known
 
 #### Seq
 
-| Operator        | Method                   | Notes                                                                                         |
-|-----------------|--------------------------|-----------------------------------------------------------------------------------------------|
-| $s + iterable   | concated/appended        | Return new. On Set, silently remove duplicates. On Map, use matching keys from the first.     |
-| $s += iterable  | concat/append in place   | Could be a naive impl, or an optimized one.                                                   |
-| $s + T          | add                      | Returns new.  Some languages do this.  It's overloaded, which may be less easy to implement.  |
-| $s - iterable   | remove/subtract          | Returns new.  Values in $s not also in the values part of iterable.                           |
-| $s -= iterable  | remove/subtract in place | Ibid.                                                                                         |
-| $s - T          | remove                   | We should include both +T and -T, or neither.                                                 |
-| isset($seq[$i]) | has                      | $i is a number.                                                                               |
-| unset($seq[$i]) | remove(): static         | $i is a number. Method version returns $this for chaining, but modifies in place.             |
-| $s[] = $val     | add($val): static        | Adds to the end of the list. Method returns $this for chaining.                               |
-| $s[$i] = $val   | set($i, $val): static    | Error if index $i doesn't already exist, or could fall back to []. Good arguments for either. |
-| $s == $s2       | equals(): bool           | True if both sequences have the same values in the same order.                                |
-| (bool)$s2       | empty(): bool            | We should mirror arrays here, not objects. So an empty list is false, anything else is true.  |
-| count($s)       | count()                  | Standard `Countable` behavior.                                                                |
-| empty($s)       | empty(): bool            | True if the collection is empty, false if it has a value.                                     |
+| Operator        | Method                           | Notes                                                                                         |
+|-----------------|----------------------------------|-----------------------------------------------------------------------------------------------|
+| $s + iterable   | concat()                         | Return new. On Set, silently remove duplicates. On Map, use matching keys from the first.     |
+| $s += iterable  | append() in place                | Could be a naive impl, or an optimized one.                                                   |
+| $s + T          | add                              | Returns new.  Some languages do this.  It's overloaded, which may be less easy to implement.  |
+| $s - iterable   | subtract()                       | Returns new.  Values in $s not also in the values part of iterable.                           |
+| $s -= iterable  | subtractInPlace()? (Need better) | Ibid.                                                                                         |
+| $s - T          | remove()                         | We should include both +T and -T, or neither. Not sure of the return type.                    |
+| isset($seq[$i]) | has(): bool                      | $i is a number.                                                                               |
+| unset($seq[$i]) | remove(): static                 | $i is a number. Method version returns $this for chaining, but modifies in place.             |
+| $s[] = $val     | add($val): static                | Adds to the end of the list. Method returns $this for chaining.                               |
+| $s[$i] = $val   | set($i, $val): static            | Error if index $i doesn't already exist, or could fall back to []. Good arguments for either. |
+| $s == $s2       | equals(): bool                   | True if both sequences have the same values in the same order.                                |
+| (bool)$s2       | empty(): bool                    | We should mirror arrays here, not objects. So an empty list is false, anything else is true.  |
+| count($s)       | count(): int                     | Standard `Countable` behavior.                                                                |
+| empty($s)       | empty(): bool                    | True if the collection is empty, false if it has a value.                                     |
 
 We could in concept define operations for * and /, but I don't think there's an "obvious" one.
 
@@ -1039,30 +1039,30 @@ I could debate if we should support any iterable or only the exact same type.  I
 
 #### Set
 
-| Operator            | Method                               | Notes                                                                                                                                                          |
-|---------------------|--------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| $s + iterable       | concat/append                        | Return new. On Set, silently remove duplicates. On Map, use matching keys from the first.                                                                      |
-| $s += iterable      | concat/append in place               | Could be a naive impl, or an optimized one.                                                                                                                    |
-| $s + T              | add                                  | Some languages do this.  It's overloaded, which may be less easy to implement.                                                                                 |
-| $s - iterable       | remove/subtract                      | Returns new. Values in $s not also in the value part of the iterable.                                                                                          |
-| $s -= iterable      | remove/subtract in place             | Ibid.                                                                                                                                                          |
-| $s - T              | remove(T)                            | This should be the key for map, IMO, but that just feels weird.                                                                                                |
-| isset($set[$val])   | has()                                | $val is the value to find.                                                                                                                                     |
-| unset($set[$val])   | remove(): static                     | $val is the value to find.                                                                                                                                     |
-| $set pipe iterable  | union(): static                      | (Markdown issues using the actual char.) Returns new set of same type. It seems we could support any iterable here, since we just want a list of values.       |
-| $set pipe= iterable | union(): static  in place            | Not quite equivalent to `$set = $set pipe iterable`, as that wouldn't be truly updating in place in case of an object passed to a method.                      |
-| $set & iterable     | intersected($s2): static             | Ibid.                                                                                                                                                          |
-| $set &= iterable    | intersect($s2): static               | Same note as for pipe/union.                                                                                                                                   |
-| $set[] = $val       | add($val): static                    | Add value, or no-op if it's already there. Method returns $this for chaining.                                                                                  |
-| $set <= $s2         | isSubsetOf($s2): bool                | True if $s2 contains all values of $set, optionally with more.                                                                                                 |
-| $set < $s2          | isStrictSubsetOf($s2): bool          | True if $s2 contains all values of $set and at least one more.                                                                                                 |
-| $set >= $s2         | isSupersetOf()                       | True if $set contains all values of $s2, optionally with more.                                                                                                 |
-| $set > $s2          | isSupersetOf(), isStrictSupersetOf() | True if $sset contains all values of $s2 and at least one more.                                                                                                |
-| $s == $s2           | equals(): bool                       | True if both sets contain the same values. Interestingly, no other language seems to have a method here, just the operator. Compares the hashes for stability. |
-| $s === $s2          | strictEquals(): bool                 | True if both sets contain the same values, in the same order. I am not sure about this one.                                                                    |
-| (bool)$s            | empty(): bool                        | We should mirror arrays here, not objects. So an empty set is false, anything else is true.                                                                    |
-| count($s)           | count()                              | Standard `Countable` behavior.                                                                                                                                 |             
-| empty($s)           | empty(): bool                        | True if the collection is empty, false if it has a value.                                                                                                      |
+| Operator            | Method                                     | Notes                                                                                                                                                          |
+|---------------------|--------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| $s + iterable       | concat()                                   | Return new. On Set, silently remove duplicates. On Map, use matching keys from the first.                                                                      |
+| $s += iterable      | append() in place                          | Could be a naive impl, or an optimized one.                                                                                                                    |
+| $s + T              | add                                        | Some languages do this.  It's overloaded, which may be less easy to implement.                                                                                 |
+| $s - iterable       | subtract()                                 | Returns new. Values in $s not also in the value part of the iterable.                                                                                          |
+| $s -= iterable      | subtractInPlace()? (Need better name)      | Ibid.                                                                                                                                                          |
+| $s - T              | remove(T)                                  | This should be the key for map, IMO, but that just feels weird.                                                                                                |
+| isset($set[$val])   | has()                                      | $val is the value to find.                                                                                                                                     |
+| unset($set[$val])   | remove(): static                           | $val is the value to find.                                                                                                                                     |
+| $set pipe iterable  | union(): static                            | (Markdown issues using the actual char.) Returns new set of same type. It seems we could support any iterable here, since we just want a list of values.       |
+| $set pipe= iterable | union(): static  in place                  | Not quite equivalent to `$set = $set pipe iterable`, as that wouldn't be truly updating in place in case of an object passed to a method.                      |
+| $set & iterable     | intersected($s2): static                   | Ibid.                                                                                                                                                          |
+| $set &= iterable    | intersect($s2): static                     | Same note as for pipe/union.                                                                                                                                   |
+| $set[] = $val       | add($val): static                          | Add value, or no-op if it's already there. Method returns $this for chaining.                                                                                  |
+| $set <= $s2         | isSubsetOf($s2): bool                      | True if $s2 contains all values of $set, optionally with more.                                                                                                 |
+| $set < $s2          | isStrictSubsetOf($s2): bool                | True if $s2 contains all values of $set and at least one more.                                                                                                 |
+| $set >= $s2         | isSupersetOf($s2)                          | True if $set contains all values of $s2, optionally with more.                                                                                                 |
+| $set > $s2          | isSupersetOf($s2), isStrictSupersetOf($s2) | True if $sset contains all values of $s2 and at least one more.                                                                                                |
+| $s == $s2           | equals($s2): bool                          | True if both sets contain the same values. Interestingly, no other language seems to have a method here, just the operator. Compares the hashes for stability. |
+| $s === $s2          | strictEquals($s2): bool                    | True if both sets contain the same values, in the same order. I am not sure about this one.                                                                    |
+| (bool)$s            | empty(): bool                              | We should mirror arrays here, not objects. So an empty set is false, anything else is true.                                                                    |
+| count($s)           | count()                                    | Standard `Countable` behavior.                                                                                                                                 |             
+| empty($s)           | empty(): bool                              | True if the collection is empty, false if it has a value.                                                                                                      |
 
 `unioned()` and `intersected()` feel a bit weird to me here, as that is not something anyone else is doing, I think.  Swift and Python do have separate methods for in-place and return-new, but use totally different naming conventions.  I do see a value to having both versions, especially for consistency with the operators.
 
@@ -1076,13 +1076,14 @@ Should we be calling these Dictionaries to avoid confusion with the `map()` meth
 
 | Operator          | Method                   | Notes                                                                                                                            |
 |-------------------|--------------------------|----------------------------------------------------------------------------------------------------------------------------------|
-| $m + iterable     | concated/appended        | In case of duplicate keys, use the values in $m.  This one is more likely to only take another Map, not any iterable. Debatable. |
-| $m += iterable    | concat/append in place   | Could be a naive impl, or an optimized one.                                                                                      |
+| $m + iterable     | concat()                 | In case of duplicate keys, use the values in $m.  This one is more likely to only take another Map, not any iterable. Debatable. |
+| $m += iterable    | append() in place        | Could be a naive impl, or an optimized one.                                                                                      |
 | $m - iterable     | remove/subtract          | Maybe.  Unclear if it should work on keys or values.                                                                             |
 | $m -= iterable    | remove/subtract in place | Ibid.                                                                                                                            |
 | isset($map[$key]) | has()                    | For map, $key is the key to find.                                                                                                |
 | unset($map[$key]) | remove(): static         | For map, $key is the key to find.                                                                                                |
 | $m[$key] = $val   | set($key, $val): static  | Set the value, overwrite if necessary.                                                                                           |
+| $val = $m[$key]   | get($key): static        | Get the value for the key, Warning and null if missing (just like arrays).                                                       |
 | $m == $m2         | equals()                 | True if both maps have the same key/value pairs.                                                                                 |
 | $m === $m2        | strictEquals()           | True if both maps have the same key/value pairs, in the same order.                                                              |
 | (bool)$m2         | empty(): bool            | We should mirror arrays here, not objects. So an empty map is false, anything else is true.                                      |
@@ -1153,8 +1154,25 @@ All of these operations have an equivalent in at least 4 of the 7 other language
 * `sort(callable(T, T): int)` - Sort the seq in place, using the comparator. If not provided, sort "naturally".  (Whatever `sort()` does today.)  Though an integrated comparison override method would be even better.
 * `sorted(callable(T, T): int)` - Same, but returns new rather than modifying in place. Shallow copy.
 * `clear(): static` - Remove all items from the sequence.  Modifies in place. Returns $this.
+* `indexOf(T $val): ?int` - The numeric index of where $val is found, or null if not.
+* `lastIndexOf(T $val): ?int` - The numeric index of where $val is found starting from the end, or null if not.
+* `slice(int $start, int $count): static` - A subset of the sequence.  (I really want to offer a native syntax version of this as well; people have asked for it for years.)
  
 I've omitted `*Indexed` versions here as most other languages don't have them.
+
+#### Set
+
+* `sort(callable(T, T): int)` - Sort the seq in place, using the comparator. If not provided, sort "naturally".  (Whatever `sort()` does today.)  Though an integrated comparison override method would be even better.
+* `sorted(callable(T, T): int)` - Same, but returns new rather than modifying in place. Shallow copy.
+* `clear(): static` - Remove all items from the sequence.  Modifies in place. Returns $this.
+
+#### Map
+
+* `keyOf(TV $val): ?TK` - The key corresponding to the $numeric index of where $val is found, or null if not.
+* `sort(callable(TV, TV): int` - Sort the map in place, using the comparator on values. If not provided, sort "naturally".
+* `ksort(callable(TK, TK): int` - Sort the map in place, using the comparator on keys. If not provided, sort "naturally".
+* `sorted(callable(TV, TV): int` - Returns a new sorted map, using the comparator on values. If not provided, sort "naturally".  Shallow copy.
+* `ksorted(callable(TK, TK): int` - Returns a new sorted map, using the comparator on keys. If not provided, sort "naturally".  Shallow copy.
 
 ### Extended operations
 
@@ -1164,6 +1182,7 @@ The following are optional, I'd argue.  They're useful, and commonly implemented
 
 * `reverse(): static` - Reverse the order of the list, in place. Returns $this.
 * `reversed(): static` - Same, but returns a new list rather than modifying in place.  Shallow copy.
+* `random(): ?T` - Returns one item at random, or null if not found.
 * `groupBy(callable(T): T2 $fn, string $targetType): Map` - Calls `$fn` on each item, then creates a new Map of the specified type, the elements of which are the type of the original Seq, and keyed by the results of `$fn`.  The target type must be Map<T2, OriginalSeq>.  It's a Type error otherwise.
 
 ### Highly useful operations
@@ -1172,12 +1191,13 @@ The following are not as widely implemented, but I believe for PHP's purposes we
 
 #### Seq
 
-* `with($val): static` - Returns a new instance with the new value added.  Shallow copy.
+* `with(T $val): static` - Returns a new instance with the new value added.  Shallow copy.
+* `without(T $val): static` - Returns a new instance with the value removed.  Shallow copy.  Returns $this if not already present.
 
 #### Set
 
-* `with($val): static` - Returns a new instance with the new value added.  Shallow copy.  Return $this if $val is already present.
-* `without($val): static` - Returns a new instance with the value removed.  Shallow copy.  Returns $this if not already present.
+* `with(T $val): static` - Returns a new instance with the new value added.  Shallow copy.  Return $this if $val is already present.
+* `without(T $val): static` - Returns a new instance with the value removed.  Shallow copy.  Returns $this if not already present.
 
 #### Map
 
@@ -1205,12 +1225,43 @@ The following are not widely implemented, but I believe are good to include for 
 
 The following are implemented in less than 4 of the targeted systems, but still available in multiple.  They are potentially useful but probably don't need to be in the initial RFC.
 
+All:
+
+* `deepClone(): static` - Returns a deep clone of the collection.
+
 #### Seq
 
-* `implode(string $glue): string` - The obvious.
+* `implode(string $glue): string` - The obvious.  Though I might argue that for PHP, this makes sense to include initially.
+* `unshift($value)` - Adds a value to the start of a list.  Same performance challenge as PHP arrays. Interestingly, only Javascript has this.
+* `splice($start, $end, $values)` - Inject values into the middle of a sequence. Only Kotlin and Javascript have this.
+* `forEach(callable(T): mixed)` - Swift, Kotlin, and Javascript have this. Similar to `map()`, but doesn't return anything.  It's effectively `array_walk()`.
+* `indexBy(callable(T $v): T2, string $targetType)` - Returns a map of type `$targetType`, where values are from the sequence and the keys are the corresponding return values from the callable.  Must be type compatible.  (This is slightly different from `groupBy`, as that returns a map of sequences, not a map of values.)  Laravel has this, and I've found it useful for myself.
+* `firstWhere(callable(T): bool): T` - Returns the first item where the callable returns true.
+* `firstIndexWhere(callable(T): bool): T` - Returns the index of the first item where the callable returns true.
+* `lastWhere(callable(T): bool): T` - Returns the first item where the callable returns true, searching from the end.
+* `lastIndexWhere(callable(T): bool): T` - Returns the index of the first item where the callable returns true, searching from the end.
+* `prefix($length): static` - The first `$length` items.
+* `suffix($length): static` - More flexible version of `tail()`, if we don't let tail skip more than one item.
+* `shuffle(): static` - Randomize in place.
+* `shuffled(): static` - Returns a new randomised sequence.
+* `combine(Seq, string $targetType): T2` - `array_combine()` to a map, using the current seq as the key and the provided seq as the value.  Produces `$targetType`, and errors if it's not compatible.
+
 
 #### Set
 
+* `indexBy(callable(T $v): T2, string $targetType)` - Returns a map of type `$targetType`, where values are from the sequence and the keys are the corresponding return values from the callable.  Must be type compatible.
+* `forEach(callable(T): mixed)` - Swift, Kotlin, and Javascript have this. Similar to `map()`, but doesn't return anything.  It's effectively `array_walk()`.
+* `symmetricDifference(self $s2)` - XOR.  Possibly useful, but only Python and Swift have it.
+* `shuffle(): static` - Randomize in place.
+* `shuffled(): static` - Returns a new randomised sequence.
+
 #### Map
 
+* `forEach(callable(TV, TK): mixed)` - Swift, Kotlin, and Javascript have this. Similar to `map()`, but doesn't return anything.  It's effectively `array_walk()`.
 * `implode(string $glue, string $separator): string` - Implode, using $separator between the key and value, and $glue between each k/v pair.
+* `shuffle(): static` - Randomize in place.
+* `shuffled(): static` - Returns a new randomised sequence.
+* `firstWhere(callable(TV, TK): bool): T` - Returns the first item where the callable returns true.
+* `firstIndexWhere(callable(TV, TK): bool): T` - Returns the index of the first item where the callable returns true.
+* `lastWhere(callable(TV, TK): bool): T` - Returns the first item where the callable returns true, searching from the end.
+* `lastIndexWhere(callable(TV, TK): bool): T` - Returns the index of the first item where the callable returns true, searching from the end.
