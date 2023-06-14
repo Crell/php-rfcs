@@ -1209,7 +1209,7 @@ The following are not as widely implemented, but I believe for PHP's purposes we
 The following are useful on Seq to let it be used as a stack.  They are implemented on at least some other targets, but not the 4/7 threshold.
 
 * `pop():T ` - Remove and return the last item in the sequence.
-* `push(): static` - Same as `add()`.  Convenience method for standard API.  Modifies in place, returns $this.
+* `push(T): static` - Same as `add()`.  Convenience method for standard API.  Modifies in place, returns $this.
 * `peek(): T` - Same as `last()`.  Convenience method for standard API.
 
 ### Extended functional operations
@@ -1245,6 +1245,7 @@ All:
 * `shuffle(): static` - Randomize in place.
 * `shuffled(): static` - Returns a new randomised sequence.
 * `combine(Seq, string $targetType): T2` - `array_combine()` to a map, using the current seq as the key and the provided seq as the value.  Produces `$targetType`, and errors if it's not compatible.
+* `chunk(int $parts): Seq<T>` - Returns a `$parts`-element sequence of the type of the current sequence, of equal size, if possible.
 
 
 #### Set
@@ -1254,6 +1255,8 @@ All:
 * `symmetricDifference(self $s2)` - XOR.  Possibly useful, but only Python and Swift have it.
 * `shuffle(): static` - Randomize in place.
 * `shuffled(): static` - Returns a new randomised sequence.
+* * `chunk(int $parts): Seq<T>` - Returns a `$parts`-element sequence of the type of the current set, of equal size, if possible.
+
 
 #### Map
 
