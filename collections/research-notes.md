@@ -984,6 +984,29 @@ The need to provide the target type is... really annoying. :-(
 
 Technically, the `to*()` methods can also be achieved using `from()` since all the collections are iterable.  However, the fluent method is a much nicer DX and better supports chaining.
 
+### Hashing
+
+For both Set and Map, we will need a way to reduce an arbitrary value down to a lookup key.  This process, IMO, needs to be customizable per-class.  There's a couple of ways we could do it.  
+
+General observations:
+
+* Default behavior - The hash of an object is the hash of all its properties, recursively, either concated or hashed.
+* Arrays are... probably not hashable.  (They aren't in other langugaes.)
+* Collections should probably not be hashable.
+* Objects should be able to declare themselves unhashable.  We should then do that for, say, PDO and SimpleXML and such.
+* Does it make sense to make only `readonly` objects hashable?  That would make them more stable, but WeakMap doesn't do that, and it hasn't had an issue.  I'd lean no here.
+
+Some APIs options include:
+* `__hash(): string` - Returns a string that will be the hash.  The class author may do whatever the heck they want here.
+* `__hash(): array` - Returns an array of values that will be hashed by the system in some standard way.  Similar to `__serialize()`.
+* `__hash(Hasher $hasher): void` - Like Swift.  The method calls some operation on `$hasher` for each property it wants to be included in the hash.  Same basic result as the previous, but backwards.
+* Any of the above, but a `hash()` method on a `Hashable` interface.
+
+For opting out of being hashable, the options would be:
+
+* Implement the hash method and return null, throw an exception, etc.
+* Implement `NotHashable`, which is a marker interface.
+* `#[NotHashable]` - This... seems like a reasonable use of attributes, frankly.
 
 ### Operator-based operations
 
