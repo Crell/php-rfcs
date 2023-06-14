@@ -1268,3 +1268,104 @@ All:
 * `firstIndexWhere(callable(TV, TK): bool): T` - Returns the index of the first item where the callable returns true.
 * `lastWhere(callable(TV, TK): bool): T` - Returns the first item where the callable returns true, searching from the end.
 * `lastIndexWhere(callable(TV, TK): bool): T` - Returns the index of the first item where the callable returns true, searching from the end.
+* * `chunk(int $parts): Seq<T>` - Returns a `$parts`-element sequence of the type of the current map, of equal size, if possible.
+
+
+## Lazy collections
+
+Even if we don't include lazy collections in the first round, we should still make sure we can extend to it cleanly, in either user space or core.
+
+The more I think on this, the more important I feel it is.  One of the uses for Doctrine Collections is to lazy-load dependent values.  Whether that's a linear process or a bulk process, we still want to allow for lazily-created typed collections.
+
+That said, the need is different for different collection types.  For instance, I'm not sure that it's even necessary to have a lazy Set.  A lazy Sequence, absolutely.  A lazy Map, I'm not sure.  As long as the hashing mechanism is exposed to user-space, I'm pretty sure a lazy set could be emulated in user-space atop a lazy seq.  (It would have to keep a side seq of the already-seen hashes, and hope it doesn't get too large.)
+
+For reference, here's a basic lazy sequence in pure user-space that I use for presentations:
+
+```php
+class Collection implements \IteratorAggregate {
+    protected $valuesGenerator;
+
+    protected function __construct(){}
+
+    public static function fromGenerator(callable $callback): static {
+        $new = new static();
+        $new->valuesGenerator = $callback;
+        return $new;
+    }
+
+    public static function fromIterable(iterable $values = []) {
+        return static::fromGenerator(function () use ($values) {
+            yield from $values;
+        });
+    }
+
+    public function getIterator(): iterable {
+        return ($this->valuesGenerator)();
+    }
+
+    public function append(iterable ...$collections): static {
+        return static::fromGenerator(function() use ($collections) {
+            yield from ($this->valuesGenerator)();
+            foreach ($collections as $col) {
+                yield from $col;
+            }
+        });
+    }
+	
+    public function add(...$items): static {
+        return $this->append($items);
+    }
+
+    public function map(callable $fn): static {
+       return static::fromGenerator(function () use ($fn) {
+            foreach (($this->valuesGenerator)() as $key => $val) {
+                yield $key => $fn($val);
+            }
+        });
+    }
+
+    public function toArray(): array {
+        return iterator_to_array($this, false);
+    }
+}
+```
+
+How would this work in our API?  Here's the operations from the lists above that would be logical on lazy linear collections, I argue.
+
+### Seq
+
+* `concat()` / `+` 
+* `with()`
+* `without()`
+* `empty()`
+* `map()`
+* `mapIndexed()` (debatable)
+* `filter()`
+* `filterIndexed()` (debatable)
+* `reduce()`
+* `any()` / `all()` / `none()` - These would have to run through the sequence destructively, so maybe, maybe not.
+* `first()`
+* `firstWhere()`
+* `firstIndexWhere()`
+* `prefix()`
+* `tail()` - Basically becomes a "skip this many items".
+* `indexBy()` - Produces a lazy map.
+* `combine()` - Would only work from two lazy sequences to a lazy Map.
+
+### Map
+
+* `concat()` / `+`
+* `with()`
+* `without()`
+* `empty()`
+* `map()`
+* `filter()`
+* `reduce()`
+* `any()` / `all()` / `none()` - These would have to run through the sequence destructively, so maybe, maybe not.
+* `first()`
+* `firstWhere()`
+* `firstIndexWhere()`
+
+So, that's a lot less than the materialized versions.  But it suggests how we should break up sub-interfaces so that you can type against "thing I can call map() on" and get an object that works, which will be necessary regardless of whether it's included in core.
+
+For consistency, both can probably be created with `LazySeq::fromIterable()`/`LazyMap::fromIterable()` static methods.
