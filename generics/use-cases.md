@@ -5,7 +5,7 @@
 ### Kotlin
 
 * Generic classes and functions.
-* Type inference to make it easier.
+* Type inference.
 * Runtime erased.
 
 ### Rust
@@ -16,8 +16,8 @@
 ### C#
 
 * Generic classes and functions.
-* Reified generics (runtime genericity)
-* Supported by reflection
+* Reified generics (runtime genericity).
+* Supported by reflection.
 * Different typed versions of a class have separate static properties.
 
 ### Java
@@ -30,7 +30,9 @@
 
 ### Typescript
 
-* Runtime erased (lost when compiling to Javascript)
+* Generic classes and functions.
+* Type inference.
+* Runtime erased (lost when compiling to Javascript).
 
 ## Examples
 
@@ -55,6 +57,21 @@ fn take_action<T>(target: T) -> T {
 let result = take_action::<f64>(a_double);
 // or
 let result = take_action(a_double);
+```
+
+```csharp
+// N/A
+```
+
+```typescript
+function takeAction<T>(target: T) {
+  return target;
+}
+
+let aDouble = 3.14;
+let result = takeAction<number>(aDouble);
+// or
+let result = takeAction(aDouble);
 ```
 
 ### Class/type generic over all types
@@ -98,6 +115,23 @@ println!("{}", e.get())
 let mut e = Envelope{message: "hello"};
 e.set("goodbye");
 println!("{}", e.get())
+```
+
+```typescript
+class Envelope<M> {
+  message: M;
+
+  constructor(newMessage: M) {
+    this.message = newMessage;
+  }
+
+  get(): M {return this.message };
+  set(newMessage: M) { this.message = newMessage; }
+}
+
+let e = new Envelope<string>("hello");
+// or
+let e2 = new Envelope("hello");
 ```
 
 ### Class generic over a subset of types
@@ -200,6 +234,47 @@ impl <M> Envelope<M> where M: Sendable + HasReturnReceipt {
     fn set(&mut self, new_message: M) {
         self.message = new_message
     }
+}
+```
+
+```typescript
+interface Sendable {}
+interface HasReturnReceipt {}
+
+class Message implements Sendable, HasReturnReceipt {
+  m: string;
+
+  constructor(m: string) {
+    this.m = m;
+  }
+}
+
+// Note the keyword "extends", even though it's a interface.
+class Envelope<M extends Sendable> {
+  message: M;
+
+  constructor(newMessage: M) {
+    this.message = newMessage;
+  }
+
+  get(): M {return this.message };
+  set(newMessage: M) { this.message = newMessage; }
+}
+
+let e = new Envelope<Message>(new Message("hello"));
+// or
+let e2 = new Envelope(new Message("hello"));
+
+// Because Typescript supports union types, multiple restrictions are just a union type:
+class Envelope<M extends Sendable|HasReturnReceipt> {
+    message: M;
+
+    constructor(newMessage: M) {
+        this.message = newMessage;
+    }
+
+    get(): M {return this.message };
+    set(newMessage: M) { this.message = newMessage; }
 }
 ```
 
