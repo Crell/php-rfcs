@@ -47,7 +47,17 @@ val result = takeAction<Double>(aDouble)
 val result = takeAction(aDouble)
 ```
 
-### Class generic over all types
+```rust
+fn take_action<T>(target: T) -> T {
+    return target;
+}
+
+let result = take_action::<f64>(a_double);
+// or
+let result = take_action(a_double);
+```
+
+### Class/type generic over all types
 
 The class is generic over any type supported by the language.
 
@@ -63,6 +73,31 @@ class Envelope<M>(private var message: M) {
 val e = Envelope<String>("hello")
 // or
 val e = Envelope("hello")
+```
+
+```rust
+struct Envelope<M> {
+    message: M,
+}
+
+impl <T> Envelope<T> {
+    fn get(self) -> T {
+        self.message
+    }
+    
+    fn set(&mut self, new_message: T) {
+        self.message = new_message
+    }
+}
+
+
+let mut e = Envelope::<String>{message: "hello".to_string()};
+e.set("goodbye".to_string());
+println!("{}", e.get())
+// or
+let mut e = Envelope{message: "hello"};
+e.set("goodbye");
+println!("{}", e.get())
 ```
 
 ### Class generic over a subset of types
@@ -100,6 +135,74 @@ val e = Envelope<Message>(Message("Hello"))
 val e = Envelope(Message("Hello"))
 ```
 
+```rust
+trait Sendable {}
+trait HasReturnReceipt {}
+
+struct Message {
+    m: String
+}
+
+impl Sendable for Message {}
+impl HasReturnReceipt for Message {}
+
+struct Envelope<M: Sendable> {
+    message: M,
+}
+
+impl <T: Sendable> Envelope<T> {
+    fn get(self) -> T {
+        self.message
+    }
+
+    fn set(&mut self, new_message: T) {
+        self.message = new_message
+    }
+}
+
+let mut e = Envelope::<Message>{message: Message{m: "hello".to_string()}};
+e.set(Message{m:"goodbye".to_string()});
+println!("{}", e.get().m);
+// or
+let mut e = Envelope{message: Message{m: "hello".to_string()}};
+e.set(Message{m:"goodbye".to_string()});
+println!("{}", e.get().m);
+
+// If there is more than one restriction, they are joined with +:
+struct Envelope<M: Sendable + HasReturnReceipt> {
+    message: M,
+}
+
+impl <T: Sendable + HasReturnReceipt> Envelope<T> {
+    fn get(self) -> T {
+        self.message
+    }
+
+    fn set(&mut self, new_message: T) {
+        self.message = new_message
+    }
+}
+
+// There is also an alternative "where" syntax that supports even more combinations.
+// The cases that can only be done with "where" are unclear from the docs, but I believe
+// are cases where another type that references the type has some rule. The docs example is
+// impl<T> PrintInOption for T where Option<T>: Debug {}
+
+struct Envelope<M> where M: Sendable + HasReturnReceipt {
+    message: M,
+}
+
+impl <M> Envelope<M> where M: Sendable + HasReturnReceipt {
+    fn get(self) -> M {
+        self.message
+    }
+
+    fn set(&mut self, new_message: M) {
+        self.message = new_message
+    }
+}
+```
+
 ### Receiving a generic object
 
 When a function/method wants to require a generic object as one if its parameters.
@@ -117,7 +220,7 @@ class ThingMaker: Maker<Thing> {
     }
 }
 
-// This function only accepts a Maker implementation that 
+// This function only accepts a Maker implementation that
 // has been specialized to Thing.
 fun wantsThingMaker(maker: Maker<Thing>) {}
 
@@ -128,6 +231,35 @@ fun wantsThingMaker(maker: ThingMaker) {}
 // This function accepts any Maker implementation that has been
 // specialized. "Any" is the Kotlin top type.
 fun wantsMaker(maker: Maker<Any>) {}
+
+// This function is itself generic, so takes any Maker:
+fun <T> wantsMaker(maker: Maker<T>) {}
+```
+
+```rust
+trait Maker<T> {
+    fn make(self, _id: i32) -> T;
+}
+
+struct Thing {}
+
+struct ThingMaker {}
+
+impl Maker<Thing> for ThingMaker {
+    fn make(self, _id: i32) -> Thing {
+        Thing{}
+    }
+}
+
+// This function only accepts a Maker implementation that
+// has been specialized to Thing.
+fn wants_thing_maker(_maker: impl Maker<Thing>) {}
+
+// This function accepts only ThingMaker.
+fn wants_thing_maker(_maker: ThingMaker) {}
+
+// This function accepts any Maker, as the function itself is still generic.
+fn wants_thing_maker<T>(_maker: impl Maker<T>) {}
 ```
 
 ### Covariant inheritance
@@ -147,6 +279,10 @@ class Thing
 fun wantsMakerProducer(maker: Maker<Thing>) {
     val doer: Maker<Any> = maker
 }
+```
+
+```rust
+// N/A
 ```
 
 ### Contravariant inheritance
@@ -171,4 +307,8 @@ class ThingReceiver: Receiver<Thing> {
 fun receive(r: Receiver<Thing>) {
     val taker: Receiver<Item> = r
 }
+```
+
+```rust
+// N/A
 ```
