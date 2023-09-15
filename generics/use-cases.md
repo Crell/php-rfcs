@@ -38,6 +38,8 @@
 
 ### Functions
 
+#### Kotlin
+
 ```kotlin
 fun <T> takeAction(target: T): T {
     return target
@@ -49,6 +51,8 @@ val result = takeAction<Double>(aDouble)
 val result = takeAction(aDouble)
 ```
 
+#### Rust
+
 ```rust
 fn take_action<T>(target: T) -> T {
     return target;
@@ -59,9 +63,13 @@ let result = take_action::<f64>(a_double);
 let result = take_action(a_double);
 ```
 
+#### C#
+
 ```csharp
 // N/A
 ```
+
+#### TypeScript
 
 ```typescript
 function takeAction<T>(target: T) {
@@ -71,12 +79,14 @@ function takeAction<T>(target: T) {
 let aDouble = 3.14;
 let result = takeAction<number>(aDouble);
 // or
-let result = takeAction(aDouble);
+let other = takeAction(aDouble);
 ```
 
 ### Class/type generic over all types
 
 The class is generic over any type supported by the language.
+
+#### Kotlin
 
 ```kotlin
 class Envelope<M>(private var message: M) {
@@ -91,6 +101,8 @@ val e = Envelope<String>("hello")
 // or
 val e = Envelope("hello")
 ```
+
+#### Rust
 
 ```rust
 struct Envelope<M> {
@@ -117,6 +129,8 @@ e.set("goodbye");
 println!("{}", e.get())
 ```
 
+#### TypeScript
+
 ```typescript
 class Envelope<M> {
   message: M;
@@ -136,7 +150,11 @@ let e2 = new Envelope("hello");
 
 ### Class generic over a subset of types
 
-The class is generic over any type that conforms to some rules, eg, `instancof`.
+The class is generic over any type that conforms to some rules. In every case I've found, the only supported rule is equivalent to an `instanceof` check.
+
+Some languages have multiple syntaxes for different sets of rules, others do not.
+
+#### Kotlin
 
 ```kotlin
 interface Sendable
@@ -168,6 +186,8 @@ val e = Envelope<Message>(Message("Hello"))
 // or
 val e = Envelope(Message("Hello"))
 ```
+
+#### Rust
 
 ```rust
 trait Sendable {}
@@ -237,6 +257,8 @@ impl <M> Envelope<M> where M: Sendable + HasReturnReceipt {
 }
 ```
 
+#### TypeScript
+
 ```typescript
 interface Sendable {}
 interface HasReturnReceipt {}
@@ -282,6 +304,8 @@ class Envelope<M extends Sendable|HasReturnReceipt> {
 
 When a function/method wants to require a generic object as one if its parameters.
 
+#### Kotlin
+
 ```kotlin
 interface Maker<T> {
     fun make(id: Int): T
@@ -311,6 +335,8 @@ fun wantsMaker(maker: Maker<Any>) {}
 fun <T> wantsMaker(maker: Maker<T>) {}
 ```
 
+#### Rust
+
 ```rust
 trait Maker<T> {
     fn make(self, _id: i32) -> T;
@@ -336,6 +362,8 @@ fn wants_thing_maker(_maker: ThingMaker) {}
 // This function accepts any Maker, as the function itself is still generic.
 fn wants_thing_maker<T>(_maker: impl Maker<T>) {}
 ```
+
+#### TypeScript
 
 ```typescript
 interface Maker<T> {
@@ -365,6 +393,8 @@ function wantsMaker<T> (maker: Maker<T>) {}
 
 Inheritance is only semi-supported by generics, because parameter and return types have conflicting requirements.  In the special case where your generic type is only used in return types, you can sometimes mark it to be covariant only.
 
+#### Kotlin
+
 ```kotlin
 interface Maker<out T> {
     fun make(id: Int): T
@@ -380,14 +410,30 @@ fun wantsMakerProducer(maker: Maker<Thing>) {
 }
 ```
 
+#### Rust
+
 ```rust
 // N/A
 ```
 
-```typescript
-// TypeScript seems to have no extra restrictions here, and just ignores the
-// potential conflicts.  There's no in/out or equivalent that I can find.
-```
+#### TypeScript
+
+Typescript is an interesting duck.  It has two different compilation modes. In the default, all generics are treated as bivariant, so the co/contravariance issues noted above are simply ignored. With strictFunctionTypes enabled, it will check contravariance of parameters, but I find no evidence that it will check covariance of returns.
+
+cf: https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-6.html#strict-function-types
+
+From that changelog:
+
+> By the way, note that whereas some languages (e.g. C# and Scala) require variance annotations (out/in or +/-), variance emerges naturally from the actual use of a type parameter within a generic type due to TypeScript’s structural type system.
+
+However, other sources seem to suggest there are `in`/`out` keywords:
+
+https://levelup.gitconnected.com/what-is-the-use-of-in-and-out-annotations-in-ts-generics-ba98c706e7f3
+
+In testing, I was also unable to get the example above to trigger an error, even in strict mode.
+
+In short, I am very confused by TypeScript's behavior here.  However, given that PHP doesn't do
+structural typing at all, I don't think it is relevant for our purposes to investigate further.
 
 ### Contravariant inheritance
 
@@ -412,6 +458,8 @@ fun receive(r: Receiver<Thing>) {
     val taker: Receiver<Item> = r
 }
 ```
+
+#### Rust
 
 ```rust
 // N/A
