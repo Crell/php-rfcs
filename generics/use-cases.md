@@ -297,7 +297,7 @@ class ThingMaker: Maker<Thing> {
 
 // This function only accepts a Maker implementation that
 // has been specialized to Thing.
-fun wantsThingMaker(maker: Maker<Thing>) {}
+fun wantsMakerOfThing(maker: Maker<Thing>) {}
 
 // This function accepts only ThingMaker, which is contravariant
 // with Maker<T>.
@@ -328,13 +328,37 @@ impl Maker<Thing> for ThingMaker {
 
 // This function only accepts a Maker implementation that
 // has been specialized to Thing.
-fn wants_thing_maker(_maker: impl Maker<Thing>) {}
+fn wants_maker_of_thing(_maker: impl Maker<Thing>) {}
 
 // This function accepts only ThingMaker.
 fn wants_thing_maker(_maker: ThingMaker) {}
 
 // This function accepts any Maker, as the function itself is still generic.
 fn wants_thing_maker<T>(_maker: impl Maker<T>) {}
+```
+
+```typescript
+interface Maker<T> {
+    make(id: number): T;
+}
+
+class Thing {}
+
+class ThingMaker implements Maker<Thing> {
+    make(id: number): Thing {
+        return new Thing();
+    }
+}
+
+// This function only accepts a Maker implementation that
+// has been specialized to Thing.
+function wantsMakerOfThing(maker: Maker<Thing>) {}
+
+// This function accepts only ThingMaker.
+function wantsThingMaker(maker: ThingMaker) {}
+
+// This function accepts any Maker, as the function itself is still generic.
+function wantsMaker<T> (maker: Maker<T>) {}
 ```
 
 ### Covariant inheritance
@@ -358,6 +382,11 @@ fun wantsMakerProducer(maker: Maker<Thing>) {
 
 ```rust
 // N/A
+```
+
+```typescript
+// TypeScript seems to have no extra restrictions here, and just ignores the
+// potential conflicts.  There's no in/out or equivalent that I can find.
 ```
 
 ### Contravariant inheritance
