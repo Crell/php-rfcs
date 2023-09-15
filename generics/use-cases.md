@@ -464,3 +464,45 @@ fun receive(r: Receiver<Thing>) {
 ```rust
 // N/A
 ```
+
+## Possible PHP syntax
+
+The syntax of our family of languages is remarkably similar for generics, so it would be wise to follow the same patterns where possible.  That makes both the syntax and semantics easier to learn.  In particular, I would note:
+
+* The `<>` is an obvious syntax to use for generics.  Of major similar languages, only Go doesn't use that.
+* Given PHP's support for union and intersection types, we probably do not need a `where` clause equivalent.  Type restrictions that complex are, most likely, not relevant for most PHP cases.
+* We should follow Kotlin and Rust rather than TypeScript and always enforce co/contravariance.  The use of `in`/`out` seems pretty common.  Kotlin uses it, as does C# (not yet shown, will add at some point).
+* For functions, we can put the `<>` before or after the name.  Both exist.  I think after is more common, and more sensible for PHP.
+* When restricting a generic type, I'm tempted to use the `:` syntax of Rust and Kotlin, as it is shorter and easier.  However, those languages also use `:` for normal inheritance, making it parallel.  PHP uses the longer `extends` keyword, also used by Java and TypeScript, and those languages use `extends` for generic restrictions.  That suggests it would be more consistent, if more verbose, to use the full word.  I am still torn on this point.
+* Type inference is very useful.  However, the code still works without it.  Whether we include it initially or not should be based on how hard it is to support in the narrow cases relevant to generics.
+
+```php
+function aGenericFunction<T extends Book>(T $b): T {}
+
+// This version is invariant.
+class Library<T extends Book|Magazine> {
+    public function __construct(private T $b) {}
+
+    public function get(): T {
+        return $this->b;
+    }
+
+    public function set(T $b): void {
+        $this->b = $b;
+    }
+}
+
+// This version is covariant.
+class Library<out T extends Book|Magazine> {
+    public function get(): T {
+        return new T();
+    }
+}
+
+// This version is contravariant.
+class Library<T extends Book|Magazine> {
+     public function set(T $b): void {
+        $temp = $b;
+    }
+}
+```
