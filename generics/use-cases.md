@@ -501,7 +501,7 @@ class Library<out T extends Book|Magazine> {
 }
 
 // This version is contravariant.
-class Library<T extends Book|Magazine> {
+class Library<in T extends Book|Magazine> {
      public function set(T $b): void {
         $temp = $b;
     }
