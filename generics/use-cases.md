@@ -476,6 +476,7 @@ The syntax of our family of languages is remarkably similar for generics, so it 
 * Crazy idea: If pattern matching gets adopted, would `<T is somepattern>` ever be a sensible thing to support?  I dunno.
 * When restricting a generic type, I'm tempted to use the `:` syntax of Rust and Kotlin, as it is shorter and easier.  However, those languages also use `:` for normal inheritance, making it parallel.  PHP uses the longer `extends` keyword, also used by Java and TypeScript, and those languages use `extends` for generic restrictions.  That suggests it would be more consistent, if more verbose, to use the full word.  I am still torn on this point.
 * Type inference is very useful.  However, the code still works without it.  Whether we include it initially or not should be based on how hard it is to support in the narrow cases relevant to generics.
+* Ilija has noted that we *may* need to use the turbofish syntax from Rust when specializing a class/function, aka `new Library::<Book>()` instead of `new Library<Book>()`.  It's possible the current parser can only handle the former.  IMO, we should try to avoid that if possible but if we can include type inference that would probably make it tolerable, as it would be less used.
 
 ```php
 function aGenericFunction<T extends Book>(T $b): T {}
