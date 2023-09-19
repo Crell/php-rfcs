@@ -435,6 +435,10 @@ In testing, I was also unable to get the example above to trigger an error, even
 In short, I am very confused by TypeScript's behavior here.  However, given that PHP doesn't do
 structural typing at all, I don't think it is relevant for our purposes to investigate further.
 
+#### C#
+
+The C# documentation is not very clear, but it appears that C# supports `in`/`out` keywords the same as Kotlin, that behave the same way.  However, there is also some degree of inference going on that makes them less used.  (Again, the docs do not make it clear what is going on.)  I think for our purposes, we can say that C# works approximately the same way as Kotlin and go with that.
+
 ### Contravariant inheritance
 
 Inheritance is only semi-supported by generics, because parameter and return types have conflicting requirements.  In the special case where your generic type is only used in parameter types, you can sometimes mark it to be contravariant only.
@@ -464,6 +468,14 @@ fun receive(r: Receiver<Thing>) {
 ```rust
 // N/A
 ```
+
+#### Typescript
+
+See Covariant inheritance.
+
+#### C#
+
+See Covariant inheritance.
 
 ### Collections
 
