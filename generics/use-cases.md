@@ -465,6 +465,69 @@ fun receive(r: Receiver<Thing>) {
 // N/A
 ```
 
+### Collections
+
+One of the most widely used type of generics is collections of various kinds.  Most languages divide these into three types: List/Sequence, Set, and Map/Dictionary.  (The terminology varies.)  In some languages, like Kotlin, there is a clear separation between mutable and immutable collections.  This has very direct implications for generics.
+
+#### Kotlin
+
+Kotlin has six collection types: `List`, `MutableList extends List`, `Set`, `MutableSet extends Set`, `Map`, and `MutableMap extends Map`.  The division into mutable and immutable versions allows the immutable versions to be covariant, while the mutable versions are invariant.
+
+Kotlin also has an `Array` type, which is always mutable and thus always invariant.  Note that on Map, only the value is variant.  The key is always invariant, even though it can be an arbitrary type.
+
+```kotlin
+open class AParent(open var name: String)
+class AChild(name: String): AParent(name)
+
+fun wantsList(l: MutableList<AParent>) {
+    println(l)
+}
+
+fun wantsMutableList(l: MutableList<AParent>) {
+    println(l)
+}
+
+val ps = mutableListOf(AParent("a"), AParent("b"), AChild("c"))
+val cs = mutableListOf(AChild("a"), AChild("b"), AChild("c"))
+
+// This is fine, because everything is-a AParent. It can only
+// be treated as AParent within wantsList.
+wantsList(ps)
+wantsMutableList(ps)
+
+// This is fine, because the function will only ever read from the list.
+wantsList(cs)
+
+// This is an error, since MutableList is invariant.
+wantsMutableList(c)
+```
+
+For reference, Kotlin's collection interfaces are defined like so (abridged):
+
+```kotlin
+interface Iterable<out T>
+
+interface MutableIterable<out T> : Iterable<T>
+
+interface Collection<out E> : Iterable<E>
+
+interface MutableCollection<E> : Collection<E>, MutableIterable<E>
+
+interface List<out E> : Collection<E>
+interface MutableList<E> : List<E>, MutableCollection<E>
+
+interface Map<K, out V>
+interface MutableMap<K, V> : Map<K, V>
+
+interface Set<out E> : Collection<E>
+interface MutableSet<E> : Set<E>, MutableCollection<E>
+
+// Note, fully invariant.
+typealias ArrayList<E> = java.util.ArrayList<E>
+```
+
+
+
 ## Possible PHP syntax
 
 The syntax of our family of languages is remarkably similar for generics, so it would be wise to follow the same patterns where possible.  That makes both the syntax and semantics easier to learn.  In particular, I would note:
