@@ -526,7 +526,35 @@ interface MutableSet<E> : Set<E>, MutableCollection<E>
 typealias ArrayList<E> = java.util.ArrayList<E>
 ```
 
+Of note, Kotlin supports "data classes" that behave more like structs, but I don't think collections are data classes.
 
+#### C#
+
+C# has an `ArrayList` type, but the documentation explicitly says to use the collection types instead.  It has a number of collection objects.  Many of them are final.
+
+* `Dictionary<TKey, TValue>`
+* `HashSet<T>`
+* `List<T>`
+* `PriorityQueue<TElement, TPriority>`
+* `Queue<T>`
+* `SortedDictionary<TKey, TValue>`
+* `SortedList<TKey, TValue>`
+* `SortedSet<T>`
+* `Stack<T>`
+
+There are also non-generic versions of many of them, likely a result of generics not being in C# 1.0.  They are all built on a series of generic interfaces, some of which are covariant, some of which are contravariant.
+
+* `IEnumerable<T>`(T is covariant)
+* `IEnumerator<T>` (T is covariant)
+* `IQueryable<T>` (T is covariant)
+* `IGrouping<TKey,TElement>` (TKey and TElement are covariant)
+* `IComparer<T>` (T is contravariant)
+* `IEqualityComparer<T>` (T is contravariant)
+* `IComparable<T>` (T is contravariant)
+* `IReadOnlyList<T>` (T is covariant)
+* `IReadOnlyCollection<T>` (T is covariant)
+
+Note that variance is only supported on "Reference types" (objects).  Value types (primitives) are always invariant.
 
 ## Possible PHP syntax
 
