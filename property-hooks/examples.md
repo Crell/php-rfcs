@@ -197,7 +197,7 @@ class Product
     private array $modified = [];
 
     // A virtual property
-    public bool $hasChanges => !!count($this->modified);
+    public bool $hasChanges => (bool) count($this->modified);
 
     public readonly string $sku;
 
