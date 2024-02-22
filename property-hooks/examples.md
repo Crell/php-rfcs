@@ -197,7 +197,7 @@ class Product
     private array $modified = [];
 
     // A virtual property
-    public bool $hasChanges => !count($this->modified);
+    public bool $hasChanges => (bool) count($this->modified);
 
     public readonly string $sku;
 
@@ -223,7 +223,7 @@ class Product
     public function modifications(): array
     {
         return $this->modified;
-    {
+    }
 }
 
 
@@ -245,10 +245,10 @@ $repo = new ProductRepo();
 
 $p = $repo->load($sku);
 
-// This is type checked.
+// This is tracked.
 $p->price = 99.99;
 
-// This is also type checked.
+// This is also tracked.
 $p->color = new Color('#ff3378');
 
 $repo->save($p);
@@ -318,7 +318,7 @@ interface ParseProperties
 #[\Attribute(\Attribute::TARGET_CLASS)]
 class ClassWithProperties implements ParseProperties
 {
-public array $properties = [];
+    public array $properties = [];
 
     // This would be technically publicly editable
     // unless asymmetric visibility is added.
