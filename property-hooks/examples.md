@@ -39,13 +39,13 @@ class User
 
     private string $first {
         set {
-            $field = $value;
+            $this->first = $value;
             unset($this->full);
         }
     };
     private string $last {
         set {
-            $field = $value;
+            $this->last = $value;
             unset($this->full);
         }
     };
@@ -93,7 +93,7 @@ class Person
             if (is_string($value)) {
                 $value = new UnicodeString($value);
             }
-            $field = $value;
+            $this->name = $value;
         }
     }
 }
@@ -109,8 +109,8 @@ As mentioned, one of the main uses of `set` is validation.
 class Request
 {
     public function __construct(
-        public string $method = 'GET' { set => $field = $this->normalizeMethod($value); },
-        public Url $url { set => $field = $url instanceof Url ? $url : new Url($url); },
+        public string $method = 'GET' { set => $this->method = $this->normalizeMethod($value); },
+        public Url $url { set => $this->url = $url instanceof Url ? $url : new Url($url); },
         public array $body,
     ) {}
 
@@ -204,19 +204,19 @@ class Product
     public string $name {
         set {
             $this->modified[__PROPERTY__] = $value;
-            $field = $value;
+            $this->name = $value;
         }
     }
     public Color $color {
         set {
             $this->modified[__PROPERTY__] = $value;
-            $field = $value;
+            $this->color = $value;
         }
     }
     public float $price {
         set {
             $this->modified[__PROPERTY__] = $value;
-            $field = $value;
+            $this->price = $value;
         }
     }
 
