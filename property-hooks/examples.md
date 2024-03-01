@@ -11,7 +11,7 @@ class User
 {
     public function __construct(private string $first, private string $last) {}
 
-    public string $fullName => $this->first . " " . $this->last;
+    public string $fullName { get => $this->first . " " . $this->last; }
 }
 ```
 
@@ -26,7 +26,7 @@ class User
 
     public function __construct(private string $first, private string $last) {}
 
-    public string $fullName => $this->full ??= $this->first . " " . $this->last;
+    public string $fullName { get => $this->full ??= $this->first . " " . $this->last; }
 }
 ```
 
@@ -58,7 +58,7 @@ class User
         $this->last = $last;
     }
     
-    public string $fullName => $this->full ??= $this->first . " " . $this->last;
+    public string $fullName { get => $this->full ??= $this->first . " " . $this->last; }
 }
 ```
 
@@ -73,7 +73,7 @@ class User
 
     // ...
 
-    public string $fullName => $this->cache[__PROPERTY__] ??= $this->first . " " . $this->last;
+    public string $fullName { get => $this->cache[__PROPERTY__] ??= $this->first . " " . $this->last; }
 }
 ```
 
@@ -109,8 +109,8 @@ As mentioned, one of the main uses of `set` is validation.
 class Request
 {
     public function __construct(
-        public string $method = 'GET' { set => $this->method = $this->normalizeMethod($value); },
-        public Url $url { set => $this->url = $url instanceof Url ? $url : new Url($url); },
+        public string $method = 'GET' { set => $this->normalizeMethod($value); },
+        public Url $url { set => $value instanceof Url ? $value : new Url($value); },
         public array $body,
     ) {}
 
@@ -197,7 +197,7 @@ class Product
     private array $modified = [];
 
     // A virtual property
-    public bool $hasChanges => (bool) count($this->modified);
+    public bool $hasChanges { get => (bool) count($this->modified); }
 
     public readonly string $sku;
 
@@ -348,7 +348,7 @@ class ClassWithProperties implements ParseProperties
 {
     public array $properties = [];
 
-    public bool $includePropertiesByDefault => $this->include;
+    public bool $includePropertiesByDefault { get => $this->include; }
     
     public bool $propertyAttribute => $this->propertiesAs;
 
