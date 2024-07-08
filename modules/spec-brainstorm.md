@@ -228,19 +228,6 @@ public local(implement) class Err implements Result {}
 
 Any module may reference `Result`, `OK`, or `Err`, and instantiate the latter two.  However, only code within `Foo\Bar` may implement or extend them, effectively creating a sealed class.
 
-### Other visibility extensions
-
-Probably not useful for the initial version, but if we do adopt the aviz-style syntax above, it becomes very easy to extend to other operations.  For example:
-
-```php
-module Foo\Bar;
-
-// This class may only be instantiated from within
-// Foo\Bar, but may be passed to, typed against,
-// instanceof'ed, etc. in any module.
-public local(create) class RouterResult {}
-```
-
 ## Using modularized code
 
 Crucially, from a purely loading perspective, whether a symbol used by a file is in a module is irrelevant.  It is still referenced by a FQCN, and that FQCN can be shortened via a `use` statement at the top of the file.  Nothing changes on the consumer end, unless one of those symbols uses module visibility modifiers, in which case the only impact is that certain symbols become unavailable.
@@ -353,3 +340,20 @@ files=**.php
 ```
 
 These additional modules are not sub-modules in the sense that they have a relationship with the parent module.  However, they are in the sense that their namespace is an extension of the parent module.  Technically they are a "sub-module" in the same way that a namespace is a "sub-namespace" today.
+
+### Local constructors
+
+A potentially powerful pattern with module visibility would be a class that may be used anywhere, but only constructed within its own module.  That can be achieved by setting the constructor of a public class to `local`.
+
+```php
+module MyFramework\Routing;
+
+class RoutingResult
+{
+    local function __construct(string $a, string $b) {}
+
+    public function whatever() {}
+}
+```
+
+This class may be used, referenced, typed against, and passed around in any module.  But it may only be constructed within the `MyFramework\Routing` module.
