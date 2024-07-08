@@ -98,7 +98,7 @@ files=**/*.php, *.ext
 exclude=examples/*
 ```
 
-This definition would declare a package unit of all files in the current directory named `.ext`, any sibling or descendant files named `*.php`, but excluding anything found in the `examples` directory.
+This definition would declare a module unit of all files in the current directory named `.ext`, any sibling or descendant files named `*.php`, but excluding anything found in the `examples` directory.
 
 Other declarations could conceivably be defined in the future.
 
@@ -140,7 +140,7 @@ Critically, nothing in this approach mandates the use of Composer.  It simply pr
 
 ## Modular visibility
 
-A new visibility scope is added, `local`.  A function, class, trait, method, or property may have a visibility modifier specified of `local`, the same as any other visibility.  A `local` visibility makes the symbol accessible from code in the same module only.
+A new visibility scope is added, `local`.  A constant, function, class, trait, class constant, method, or property may have a visibility modifier specified of `local`, the same as any other visibility.  A `local` visibility makes the symbol accessible from code in the same module only.
 
 If no visibility is specified, it is `public`, meaning available to any module scope to use.  For example:
 
@@ -238,7 +238,7 @@ That means if, for example, `Crell\Serde` declared itself to be a module, no cod
 
 ### Package == module
 
-In the degenerate case where a package consists of a single module, the required steps to upgrade would be as follows:
+In the degenerate case (but likely most common case) where a package consists of a single module, the required steps to upgrade would be as follows:
 
 1. Change `namespace My\Package` to `module My\Package` in all top-level files (in `/src`).
 2. If necessary, change `namespace My\Package\Sub` in any sub-directory to `module My\Package; namespace Sub;`.
@@ -272,7 +272,7 @@ files=Main.php, Support.php, OtherSupport.php, Enums.php
 
 Now, trying to load the class `My\Package\Main` will trigger an autoloader, which will call `require_modules()`, which will bulk-load all four files specified.  Trying to load the class `My\Package\Rare` will trigger `require_modules()` and bulk-load those files, and then load `My/Package/Rare.php` as it normally would.
 
-### Function autoloading
+### Function/constant autoloading
 
 An interesting side effect of this approach is that loading a module will load any files specified, regardless of the symbols they use.  That provides a way to autoload functions and constants implicitly when their module is loaded.  In a minimal case:
 
@@ -338,6 +338,8 @@ files=**.php
 module=My\DBAL\Postgres
 files=**.php
 ```
+
+Importantly, `src/MySQL/MySQL.php` is owned by the module `My\DBAL\MySQL`, *not* by `My\DBAL`.  It is in that namespace, specifies that module, and is referenced by that `module.ini`.  If the `My\DBAL` module tries to reference that file in its `module.ini`, it will be an error.
 
 These additional modules are not sub-modules in the sense that they have a relationship with the parent module.  However, they are in the sense that their namespace is an extension of the parent module.  Technically they are a "sub-module" in the same way that a namespace is a "sub-namespace" today.
 
