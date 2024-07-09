@@ -109,6 +109,50 @@ When loading files in this way, the following rules are enforced:
 * If a file is not a sibling or descendant of the `module.ini` file, it is a fatal error.
 * If a file referenced by `module.ini` does not declare the same module as `module.ini`, it is a fatal error.
 * If a file referenced by `module.ini` is already loaded by some other module, it is a fatal error.
+* All symbols referenced in the loaded files must exist, or must be declared by one of the loaded files, or must be autoloadable (the autoloader may be called if necessary). This excludes symbols referenced in strings, in `use` statements, and in `::class` constants. Symbols referenced in conditional declarations are nto required to exist of the declaration is not made. 
+* Modules must not have cyclic dependencies (if a module A depends on module B, then module B can not directly or indirectly depend on module A)
+
+In the following snippet, classes B, C, and D must exist, but class E is not required to exist:
+
+```php
+module Foo\Bar;
+
+use Foo\{B,C};
+use Qux\{D,E};
+
+class A extends B {
+    function f(): C {
+        return new D;
+    }
+}
+
+$a = E::class;
+```
+
+In the following snippet, the classes `CurlHandler`, `HandlerStack`, and `Client` must exist, but only if the class `GuzzleAdapter` is declared. The `class_exists()` call may trigger autoloading.
+
+```php
+module Foo\Bar;
+
+use GuzzleHttp\Client;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Handler\CurlHandler;
+
+if (class_exists(GuzzleHttp\Client::class)) {
+    class GuzzleAdapter {
+        function __construct() {
+            $handler = new CurlHandler();
+            $stack = HandlerStack::create($handler);
+            $this->client = new Client(['handler' => $stack]);
+            // ...
+        }
+    }
+}
+```
+
+Rationale for rule 4 "all symbols must exist":
+ * The compiler's view of the code base does not depend on loading order
+ * Non-qualified function calls can be resolved at compile time
 
 Additionally, when loading a file with `require()` and similar:
 
