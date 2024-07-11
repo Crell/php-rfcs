@@ -4,7 +4,7 @@ We're using the term "module" instead of "package" primarily because "package" m
 
 ## Goals
 
-1. Give the optimizer a larger "set" of files to operate on at once.  This has, we believe, many possibilities for improved performance as the optimizer can be smarter.  In the extreme case, it has similar options to an AOT compiled language.
+1. Give the optimizer a larger "set" of files to operate on at once.  This has, we believe, many possibilities for improved performance as the optimizer can be smarter.  In the extreme case, it has similar options to an AOT (Ahead-Of-Time) compiled language.
 2. Define a limited scope for module-based visibility and similar functionality.
 3. Make it easier to support non-PSR-4-style file organization.  Aka, allow loading many symbols from one file.  This is especially helpful if those files contain non-autoloadable symbols (functions, constants, etc.)
 
