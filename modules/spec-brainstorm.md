@@ -55,7 +55,7 @@ A namespace declaration inside a module is always relative to the current module
 ```php
 module Foo\Bar {
   namespace Baz {
-      // This class's FQDN is \Foo\Bar\Baz\Beep
+      // This class's FQCN is \Foo\Bar\Baz\Beep
       class Beep{};
   }
 }
@@ -65,7 +65,7 @@ module Foo\Bar {
 module Foo\Bar;
 namespace Baz;
 
-// This class's FQDN is \Foo\Bar\Baz\Beep
+// This class's FQCN is \Foo\Bar\Baz\Beep
 class Beep{};
 ```
 
@@ -74,7 +74,7 @@ If no namespace is specified, the namespace is equal to the module.
 ```php
 module Foo\Bar;
 
-// FQDN is \Foo\Bar\Beep.
+// FQCN is \Foo\Bar\Beep.
 class Beep;
 ```
 
