@@ -326,7 +326,7 @@ class ClassWithProperties implements ParseProperties
     
     // This simulates public-read-only while still
     // fulfilling the interface.
-    public bool $propertyAttribute => BasicProperty::class;
+    public string $propertyAttribute = BasicProperty::class;
 
     public function __construct(
         public readonly int $a = 0,
@@ -350,13 +350,13 @@ class ClassWithProperties implements ParseProperties
 
     public bool $includePropertiesByDefault { get => $this->include; }
     
-    public bool $propertyAttribute => $this->propertiesAs;
+    public string $propertyAttribute { get => $this->propertiesAs; }
 
     public function __construct(
         public readonly int $a = 0,
         public readonly int $b = 0,
-        private readonly $include = true;
-        private readonly $propertiesAs = BasicProperty::class,
+        private readonly bool $include = true,
+        private readonly string $propertiesAs = BasicProperty::class,
     ) {}
 
     public function setProperties(array $properties): void
